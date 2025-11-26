@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
 
-	<arg name="rviz_conf" default="$(find limo_description)/rviz/conf_tf.rviz"/>
+	<arg name="rviz_conf" default="$(find limo_description)/rviz/conf.rviz"/>
 	<arg name="robot_id" default="0" />
 	<arg name="sensors" default="false" />
 	
