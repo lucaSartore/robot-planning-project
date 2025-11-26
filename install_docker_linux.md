@@ -55,7 +55,7 @@ docker run --name docker_container --gpus all \
 --network=host --hostname=docker -it \
 --volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
 --privileged --shm-size 2g --rm \
---volume $HOME/trento_lab_home_loconav:/root \
+--volume $HOME/trento_lab_home:/root \
 mfocchi/trento_lab_framework:loco_nav'
 
 alias dock-other='docker exec -it docker_container /bin/bash'

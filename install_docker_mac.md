@@ -1,7 +1,7 @@
 Installation with Docker
 ================================================================================
 
-- Run the script install_docker. This script is important because it installs the docker client on your machine and adds to your user the privileges to run the docker images
+- Run the script install_docker.sh. This script is important because it installs the docker client on your machine and adds to your user the privileges to run the docker images, and create a new folder.
 
 
 ```
@@ -20,6 +20,8 @@ $ cd ~/trento_lab_home/ros_ws/src
 $ git clone https://github.com/idra-lab/loco_nav.git
 ```
 
+**NOTE:**  when you clone the code, be sure to have a stable and fast connection. Before continuing, be sure you properly checked out **all** the submodules without any error.
+
 - Now you should compile the docker image yourself for ARM:
 
   ```
@@ -31,25 +33,23 @@ $ git clone https://github.com/idra-lab/loco_nav.git
 
 
 ```
-$ gedit ~/.zshrc 
+$ gedit ~/.zshrc
 ```
 
+- Make sure **XQuartz → Preferences → Security → “Allow connections from network clients”** is checked
 - and add the following lines at the bottom of the file:
 
 ```bash
-alias lab_planning='xhost +local:root; docker rm -f docker_container || true; \
-docker run --name docker_container --gpus all \
---workdir="/root" \
---volume $HOME/.ssh:/root/.ssh \
---device=/dev/ttyUSB0:/dev/ttyUSB0 \
---device=/dev/dri:/dev/dri \
---env="DISPLAY=$DISPLAY" \
---env="QT_X11_NO_MITSHM=1" \
---network=host --hostname=docker -it \
---volume="/tmp/.X11-unix:/tmp/.X11-unix:rw" \
---privileged --shm-size 2g --rm \
---volume $HOME/trento_lab_home_loconav:/root \
-mfocchi/trento_lab_framework:loco_nav'
+alias lab_planning='xhost +127.0.0.1; \
+docker rm -f docker_container >/dev/null 2>&1 || true; \
+docker run --name docker_container \
+  --workdir="/root"  -it \
+  --device=/dev/ttyUSB0:/dev/ttyUSB0 \
+  --volume="/tmp/.X11-unix:/tmp/.X11-unix \
+  --volume="$HOME/trento_lab_home:/root" \
+  --env="DISPLAY=host.docker.internal:0" \
+  --privileged --shm-size=2g --rm \
+  mfocchi/trento_lab_framework:loco_nav'
 alias dock-other='docker exec -it docker_container /bin/bash'
 ```
 
@@ -57,22 +57,22 @@ alias dock-other='docker exec -it docker_container /bin/bash'
 
 
 ```
-$ source ~/.zshrc 
+$ source ~/.zshrc
 ```
 
-**NOTE!** If you do not have an Nvidia card in your computer, you should skip the parts about the installation of the drivers, and you can still run the docker **without** the **--gpus all**  in the **lab** alias.
-
-- Open a terminal and run the "lab" alias:
+- Open a terminal and run the "lab_planning" alias:
 
 ```
 $ lab_planning
 ```
 
 - You should see your terminal change from `user@hostname` to `user@docker`. 
-- the **lab** script will mount the folder `~/trento_lab_home` on your **host** computer. Inside of all of the docker images this folder is mapped to `$HOME`.This means that any files you place   in your docker $HOME folder will survive the stop/starting of a new docker container. All other files and installed programs will disappear on the next run. 
-- The alias **lab** needs to be called only ONCE and opens the image. To link other terminals to the same image you should run **dock-other**, this second command will "**attach**" to the image opened previously by calling the **lab** alias.  You can call **lab** only once and **dock-other** as many times you need to open multiple terminals.
+- the **lab_planning** script will mount the folder `~/trento_lab_home` on your **host** computer. Inside of all of the docker images this folder is mapped to `$HOME`.This means that any files you place   in your docker $HOME folder will survive the stop/starting of a new docker container. All other files and installed programs will disappear on the next run. 
+- The alias **lab_planning** needs to be called only ONCE and opens the image. To link other terminals to the same image you should run **dock-other**, this second command will "**attach**" to the image opened previously by calling the **lab_planning** alias.  You can call **lab_planning** only once and **dock-other** as many times you need to open multiple terminals.
 
-**NOTE!** If you do not have an Nvidia card in your computer, you should skip the parts about the installation of the drivers, and you can still run the docker **without** the **--gpus all ** flag in the **lab** alias. 
+
+
+# Compiling the code
 
 - Now you can compile the ROS workspace in the $HOME directory **inside** docker:
 
@@ -88,36 +88,37 @@ $ catkin_make install
 $ source /root/ros_ws/install/setup.bash
 ```
 
-
-
-
-
-## Docker Issues (optional)
-
---------------------------------------------------------------------------------
-
-<a name="docker_issues"></a>
-
-Check this section only if you had any issues in running the docker!
-
-- When launching any graphical interface inside docker (e.g. pycharm or gedit) you get this error:
+**NOTE:**  when you run the code, if an error pops-up that tells you a recently compiled package cannot be found you need to run:
 
 ```
-No protocol specified
-Unable to init server: Could not connect: Connection refused
-
-(gedit:97): Gtk-WARNING **: 08:21:29.767: cannot open display: :0.0
+$ rospack profile
 ```
 
-It means that docker is not copying properly the value of you DISPLAY environment variable, you could try to solve it in this way, in a terminal **outside docker** launch:
+This function crawls through the packages in ROS_ROOT  and ROS_PACKAGE_PATH, read and parse  the package.xml for each package, and  assemble a complete dependency tree  for all packages.
+
+Now you are ready to run the code as explained  [here](https://github.com/idra-lab/locosim?tab=readme-ov-file#running-the-software-from-python-ide-pycharm).
+
+When you have finished exit from the container typing:  
 
 ```
-echo $DISPLAY
+$ exit
 ```
 
-and you will obtain a **value**  (e.g. :0) if you run the same command in a docker terminal the value will be different, then in the .bashrc inside the docker add the following line:
 
+
+# **Committing the image** (optional)
+
+To install new packages open a terminal and call the apt install **without** sudo. To store the changes in the local image, get the ASH (a number) of the active container with:
+
+```powershell
+$ docker ps 
 ```
-export DISPLAY=value
+
+14. Commit the docker image (next time you will open an new container it will retain the changes done to the image without loosing them):
+
+```powershell
+$ docker commit ASH mfocchi/trento_lab_framework:introrob
 ```
+
+
 
