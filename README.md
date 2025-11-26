@@ -53,16 +53,8 @@ rostopic pub /limo0/ref loco_planning/Reference "{x_d: 0.4, y_d: 0.0, theta_d: 0
 5. To test an RRT planner (alternative to 4.) (first do point 2. or set StartSimulation=True)
 
 ```
-roslaunch loco_planning planner_rrt.py
+python3 -i $LOCONAV_DIR/loco_planning/scripts/planner_base.py
 ```
-
-6. To test an voronoi planner (alternative to 5., set StartSimulation=True)
-
-```
-roslaunch loco_planning planner_voronoi.py
-```
-
-
 
 ### Alternative Options
 

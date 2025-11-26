@@ -326,21 +326,30 @@ def generate_config_file(map_env_params_file, generated_config_file):
         config_yaml['/**']['ros__parameters']['dy']
     )
 
-    # Generate Shelfini config
-    shelfini_yaml = config_yaml['/**']['ros__parameters']
+    # Generate Shelfini config from ROS parameters
+    x_pos_init = rospy.get_param('/x_pos_init', [])
+    y_pos_init = rospy.get_param('/y_pos_init', [])
+    yaw_pos_init = rospy.get_param('/yaw_pos_init', [])
+    shelfini_names = [f"limo{i}" for i in range(len(x_pos_init))]
+
+
+    # --- Safety checks ---
+    if x_pos_init is None or y_pos_init is None or yaw_pos_init is None:
+        raise ValueError("ROS parameters x_pos_init, y_pos_init, yaw_pos_init must be set")
+
+    if shelfini_names is None:
+        shelfini_names = [f"limo{i}" for i in range(len(x_pos_init))]
+
+ 
     shelfini = []
-    assert len(shelfini_yaml["init_names"]) == len(shelfini_yaml["init_rand"]) == len(shelfini_yaml["init_x"]) == len(
-        shelfini_yaml["init_y"]) == len(shelfini_yaml["init_yaw"])
-    for i in range(len(shelfini_yaml["init_names"])):
-        shelfino = ShelfinoConfig(name=shelfini_yaml["init_names"][i])
-        if shelfini_yaml["init_rand"][i]:
-            shelfino.random(map_config)
-        else:
-            shelfino.x = shelfini_yaml["init_x"][i]
-            shelfino.y = shelfini_yaml["init_y"][i]
-            shelfino.yaw = shelfini_yaml["init_yaw"][i]
-            assert shelfino.check(map_config)
+    for i in range(len(shelfini_names)):
+        shelfino = ShelfinoConfig(name=shelfini_names[i])
+        shelfino.x = x_pos_init[i]
+        shelfino.y = y_pos_init[i]
+        shelfino.yaw = yaw_pos_init[i]
+        assert shelfino.check(map_config), f"{shelfino} is out of map bounds"
         shelfini.append(shelfino)
+
 
     # Generate gates config
     gates_yaml = config_yaml['/**/send_gates']['ros__parameters']
@@ -430,10 +439,8 @@ def generate_config_file(map_env_params_file, generated_config_file):
     }
 
     for key in config_yaml['/**']["ros__parameters"].keys():
-        if key != "init_rand":
-            full_conf_file["/_"]["ros__parameters"][key] = config_yaml['/**']["ros__parameters"][key]
-        else:
-            full_conf_file["/_"]["ros__parameters"][key] = [False for _ in range(len(shelfini))]
+        full_conf_file["/_"]["ros__parameters"][key] = config_yaml['/**']["ros__parameters"][key]
+ 
 
     full_conf_file["/_"]["ros__parameters"]["use_sim_time"] = True
 

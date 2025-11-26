@@ -397,8 +397,8 @@ if __name__ == '__main__':
 
     # Example start positions in world coordinates
     # pursuer closer to gate than evader
-    p_start_world = (4, 2)  # pursuer
-    e_start_world = (1, 1)  # evader
+    p_start_world = (1, 2)  # pursuer
+    e_start_world = (5, 2)  # evader
 
     # evader closer to gate than pursuer
     # p_start_world = (1, 1) # pursuer
@@ -409,7 +409,7 @@ if __name__ == '__main__':
         p_start_world=p_start_world,
         e_start_world=e_start_world,
         max_depth=100,
-        use_alpha_beta= False
+        use_alpha_beta= True
     )
     print("Nodes expanded:", expanded_nodes)
     print(f"Winner: {winner} | utility: {final_util:.2f} | reason: {reason}")
