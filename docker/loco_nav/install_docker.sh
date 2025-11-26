@@ -14,23 +14,13 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
 
 	# Add user to docker's group
 	sudo usermod -aG docker ${USER}
-	
 
-elif [[ "$OSTYPE" == "darwin"* ]]; then
-        # Mac OSX
-        echo "install for MAC"
-
-	brew install -y curl
-	curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh
-	brew   update
-	brew install docker-ce nvidia-docker2  build-essential cmake
-
-	# Add user to docker's group
-	sudo usermod -aG docker ${USER}
-	
-
+else
+	echo "OS not supported. Check online how to install docker for your OS."
+	exit 1
 fi
 
+	
 # insert/update hosts entry
 ip_address="127.0.0.1"
 host_name="docker"
