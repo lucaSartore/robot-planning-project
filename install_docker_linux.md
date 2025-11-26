@@ -15,7 +15,7 @@ sudo chmod +x install_docker.sh
 
 ```bash
 cd ~/trento_lab_home/ros_ws/src
-git clone [https://github.com/idra-lab/loco_nav.git](https://github.com/idra-lab/loco_nav.git)
+git clone https://github.com/idra-lab/loco_nav.git
 ```
 
 - Now you have two options:
