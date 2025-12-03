@@ -8,19 +8,38 @@ from roslaunch.parent import ROSLaunchParent
 import sys, os
 import numpy as np
 
-def getInitialStateFromOdom(robot_name = None):
-    try:
-        odom0 = ros.wait_for_message("/" + robot_name + "/odom", Odometry, timeout=10.0)
-    except ros.ROSException:
-        ros.logerr(f"Timed out waiting for /{robot_name}/odom")
-        return
+def getInitialStateFromOdom(robot_name=None, timeout=5.0, max_retries=3):
+    assert robot_name, "robot_name must be provided"
+    topic = f"/{robot_name}/odom"
 
-    p0 = odom0.pose.pose.position
-    q0 = odom0.pose.pose.orientation
-    yaw0 = euler_from_quaternion([q0.x, q0.y, q0.z, q0.w])[2]
-    print(colored(f"{robot_name}: Init. desired state from first /odom: x0: {p0.x},y0: {p0.y},yaw0: {yaw0}", "red"))
+    last_exception = None
 
-    return p0.x, p0.y, yaw0
+    for attempt in range(1, max_retries + 1):
+        try:
+            ros.loginfo(f"Waiting for {topic} (attempt {attempt}/{max_retries})")
+            odom0 = ros.wait_for_message(topic, Odometry, timeout=timeout)
+
+            # Success → extract state
+            p0 = odom0.pose.pose.position
+            q0 = odom0.pose.pose.orientation
+            yaw0 = euler_from_quaternion([q0.x, q0.y, q0.z, q0.w])[2]
+
+            print(colored(
+                f"{robot_name}: Init. desired state from first /odom: "
+                f"x0: {p0.x}, y0: {p0.y}, yaw0: {yaw0}",
+                "red"
+            ))
+
+            return p0.x, p0.y, yaw0
+
+        except ros.ROSException as e:
+            last_exception = e
+            ros.logwarn(f"Timed out waiting for {topic} (attempt {attempt})")
+
+    # If we reach here → all retries failed
+    ros.logerr(f"Failed to get {topic} after {max_retries} attempts")
+    raise RuntimeError(f"Could not get initial odom for {robot_name}") from last_exception
+
 
 def getInitialStateFromJoints(robot_name = None, joint_names = None):
     try:
