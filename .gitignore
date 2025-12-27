@@ -3,6 +3,8 @@ build/
 devel/
 install/
 
+.bash_history
+
 *.log
 __pycache__/
 *.pyc
