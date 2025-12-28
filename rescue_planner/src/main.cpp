@@ -1,14 +1,20 @@
 #include <ros/ros.h>
+#include <iostream>
 #include "std_msgs/String.h"
+
+#include "obstacles_msgs/ObstacleArrayMsg.h"
+#include "obstacles_msgs/ObstacleMsg.h"
+
 // #include <iostream>
 #include "../../map_pkg/include/map_pkg/obstacle_struct.hpp"
 
 using namespace std;
 
 // void chatterCallback(const std_msgs::String::ConstPtr& msg)
-void chatterCallback(const std_msgs::String::ConstPtr& msg)
+void chatterCallback(const obstacles_msgs::ObstacleArrayMsg & msg)
 {
-    ROS_INFO("one message");
+    cout << msg.obstacles.size() << endl;
+    ROS_INFO("I read [%ld] obstacles", msg.obstacles.size());
 }
 
 int main(int argc, char** argv){
@@ -17,8 +23,9 @@ int main(int argc, char** argv){
     
     ros::NodeHandle n;
     
-    ros::Subscriber sub = n.subscribe("obstacles", 1000, chatterCallback);
+    ros::Subscriber sub = n.subscribe("/obstacles", 1000, chatterCallback);
     
+    ros::spin();
     // Obstacle obstacle;
     return 0;
 }
