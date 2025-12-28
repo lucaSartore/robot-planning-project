@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <ostream>
 
 using namespace std;
 
@@ -8,48 +9,64 @@ class Point {
 public:
     float x;
     float y;
+
+    Point(float x = 0.0f, float y = 0.0f);
+    friend ostream& operator<<(ostream& os, const Point& p);
 };
 
 class Exit {
 public:
     Point position;
-    // orientation of the exit (in degrees,
-    // 0 is facing upword, clockwise)
-    float orientation;
+    float orientation; 
+
+    Exit(Point pos = Point(), float orient = 0.0f);
+    friend ostream& operator<<(ostream& os, const Exit& e);
 };
 
 class PolygonObstacle {
 public:
     vector<Point> points;
+    PolygonObstacle() = default;
+    PolygonObstacle(const vector<Point>& pts);
 };
-
 
 class CylinderObstacle {
 public:
     Point center;
     float radius;
+    CylinderObstacle(Point c = Point(), float r = 0.0f);
 };
 
-enum ObstacleKind {
-    Polygon,
-    Cylinder
-};
+enum ObstacleKind { Polygon, Cylinder };
 
 class Obstacle {
 public:
     ObstacleKind kind;
-
-    union {
+    union Value {
         PolygonObstacle polygon;
         CylinderObstacle cylinder;
+        Value() {} 
+        ~Value() {} 
     } value;
-};
 
+    // Static factory methods
+    static Obstacle CreatePolygon(const vector<Point>& pts);
+    static Obstacle CreateCylinder(Point center, float radius);
+
+    friend ostream& operator<<(ostream& os, const Obstacle& o);
+
+    Obstacle() {}
+    Obstacle(const Obstacle& other);
+    Obstacle& operator=(const Obstacle& other);
+};
 
 class Victim {
 public:
     Point position;
     float value;
+
+    Victim(Point pos = Point(), float val = 0.0f);
+    friend ostream& operator<<(ostream& os, const Victim& v);
 };
 
 class Map {
@@ -58,12 +75,15 @@ public:
     vector<Point> borders;
     vector<Victim> victims;
     vector<Obstacle> obstacles;
+
+    Map() = default;
+    Map(Exit e, vector<Point> b, vector<Victim> v, vector<Obstacle> o);
+    friend ostream& operator<<(ostream& os, const Map& m);
 };
-
-
 
 class Interface {
 public:
-    virtual Map GetMap();
-    virtual void OutputTrajectory(vector<Point> trajectory);
+    virtual ~Interface() {}
+    virtual Map GetMap() = 0;
+    virtual void OutputTrajectory(vector<Point> trajectory) = 0;
 };
