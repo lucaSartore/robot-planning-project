@@ -1,24 +1,21 @@
 #include <ros/ros.h>
 #include <iostream>
 #include "std_msgs/String.h"
-
-
 #include "geometry_msgs/Point32.h"
 #include "geometry_msgs/Polygon.h"
+#include "geometry_msgs/PoseArray.h"
 #include "geometry_msgs/PolygonStamped.h"
 #include "geometry_msgs/Pose.h"
-
 #include "obstacles_msgs/ObstacleArrayMsg.h"
 #include "obstacles_msgs/ObstacleMsg.h"
-
-// #include <iostream>
-#include "../../map_pkg/include/map_pkg/obstacle_struct.hpp"
+#include <iostream>
 
 using namespace std;
 
-
-void exitPointCallback(const geometry_msgs::Polygon & msg) {
-    ROS_INFO("I read a poligon with [%ld] points", msg.points.size());
+void exitPointCallback(const geometry_msgs::PoseArray & msg) {
+    auto pos = msg.poses[0];
+    // note: orientation is also important for the gate
+    ROS_INFO("Gate found at: x=[%f. y=[%f]", pos.position.x, pos.position.y);
 }
 
 // void chatterCallback(const std_msgs::String::ConstPtr& msg)
@@ -32,6 +29,7 @@ void chatterCallback(const obstacles_msgs::ObstacleArrayMsg & msg) {
 
 int main(int argc, char** argv){
 
+    cout << "Done!" << endl;
     ros::init(argc, argv, "planner");
     
     ros::NodeHandle n;

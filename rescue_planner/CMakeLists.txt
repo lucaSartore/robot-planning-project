@@ -112,6 +112,17 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
+set(SOURCES
+    src/main.cpp
+
+    src/interface/interface.cpp
+    src/interface/interface.hpp
+    src/interface/ros_interface.cpp
+    src/interface/ros_interface.hpp
+    src/interface/debug_interface.cpp
+    src/interface/debug_interface.hpp
+)
+
 ###########
 ## Build ##
 ###########
@@ -136,7 +147,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(planner src/main.cpp)
+add_executable(planner ${SOURCES})
 target_link_libraries(planner ${catkin_LIBRARIES})
 
 ## Rename C++ executable without prefix
