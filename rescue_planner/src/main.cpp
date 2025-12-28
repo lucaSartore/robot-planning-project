@@ -1,6 +1,5 @@
 #include <ros/ros.h>
 #include <iostream>
-#include "std_msgs/String.h"
 #include "geometry_msgs/Point32.h"
 #include "geometry_msgs/Polygon.h"
 #include "geometry_msgs/PoseArray.h"
@@ -9,6 +8,7 @@
 #include "obstacles_msgs/ObstacleArrayMsg.h"
 #include "obstacles_msgs/ObstacleMsg.h"
 #include <iostream>
+#include "interface/ros_interface.hpp"
 
 using namespace std;
 
@@ -32,12 +32,14 @@ int main(int argc, char** argv){
     cout << "Done!" << endl;
     ros::init(argc, argv, "planner");
     
-    ros::NodeHandle n;
+    RosInterface interface = RosInterface();
+
+    // ros::NodeHandle n;
     
     // ros::Subscriber sub = n.subscribe("/obstacles", 1000, chatterCallback);
     // ros::Subscriber sub = n.subscribe("/victims", 1000, chatterCallback);
     // ros::Subscriber sub = n.subscribe("/map_borders", 1000, mapCallback);
-    ros::Subscriber sub = n.subscribe("/gates", 1000, exitPointCallback);
+    // ros::Subscriber sub = n.subscribe("/gates", 1000, exitPointCallback);
     
     ros::spin();
     // Obstacle obstacle;

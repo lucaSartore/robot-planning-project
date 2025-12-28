@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <ostream>
+#include <optional>
 
 using namespace std;
 
