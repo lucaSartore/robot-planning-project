@@ -2,6 +2,7 @@
 #include "interface.hpp"
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include "geometry_msgs/Pose.h"
 
 
 Map RosInterface::built_map;
@@ -11,10 +12,25 @@ bool RosInterface::obstacles_done;
 bool RosInterface::victims_done;
 bool RosInterface::map_done;
 bool RosInterface::exit_done;
+bool RosInterface::position_done;
 std::mutex RosInterface::map_ready_mutex;
 std::mutex RosInterface::edit_mutex;
 std::optional<ros::NodeHandle> RosInterface::node_handle;
 std::vector<ros::Subscriber> RosInterface::subscribers;
+
+Pose create_pose(geometry_msgs::Pose pos) {
+
+    tf2::Quaternion q_tf2;
+    tf2::fromMsg(pos.orientation, q_tf2);
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(q_tf2).getRPY(roll, pitch, yaw);
+
+    return  Pose(
+        Point(pos.position.x, pos.position.y),
+        yaw
+    );
+}
+
 
 RosInterface::RosInterface(){
     RosInterface::edit_mutex.lock();
@@ -52,6 +68,9 @@ RosInterface::RosInterface(){
     );
     RosInterface::subscribers.push_back(
         RosInterface::node_handle.value().subscribe("/gates", 1, this->ExitCallback)
+    );
+    RosInterface::subscribers.push_back(
+        RosInterface::node_handle.value().subscribe("/limo0/odom", 1, this->RobotPositionCallback)
     );
 
 
@@ -123,19 +142,23 @@ void RosInterface::MapCallback(const geometry_msgs::Polygon & msg) {
 }
 
 void RosInterface::ExitCallback(const geometry_msgs::PoseArray & msg) {
-    auto pos = msg.poses[0];
-    // 1. Convert geometry_msgs to tf2 Quaternion
-    tf2::Quaternion q_tf2;
-    tf2::fromMsg(pos.orientation, q_tf2);
-    double roll, pitch, yaw;
-    tf2::Matrix3x3(q_tf2).getRPY(roll, pitch, yaw);
+    auto pos = create_pose(msg.poses[0]);
 
     RosInterface::edit_mutex.lock();
-    RosInterface::under_construction_map.exit = Exit(
-        Point(pos.position.x, pos.position.y),
-        yaw
-    );
+    RosInterface::under_construction_map.exit = pos;
     RosInterface::exit_done = true;
+    RosInterface::edit_mutex.unlock();
+
+    TryExportMap();
+}
+
+
+void RosInterface::RobotPositionCallback(const nav_msgs::Odometry & msg) {
+    auto pos = create_pose(msg.pose.pose);
+
+    RosInterface::edit_mutex.lock();
+    RosInterface::under_construction_map.robot_position = pos;
+    RosInterface::position_done = true;
     RosInterface::edit_mutex.unlock();
 
     TryExportMap();
@@ -145,7 +168,7 @@ void RosInterface::TryExportMap() {
     RosInterface::edit_mutex.lock();
 
     bool is_ready = RosInterface::obstacles_done && RosInterface::victims_done
-        && RosInterface::map_done && RosInterface::exit_done;
+        && RosInterface::map_done && RosInterface::exit_done && RosInterface::position_done;
 
     if (!is_ready) {
         RosInterface::edit_mutex.unlock();
@@ -159,6 +182,7 @@ void RosInterface::TryExportMap() {
     RosInterface::victims_done = false;
     RosInterface::map_done = false;
     RosInterface::exit_done = false;
+    RosInterface::position_done = false;
 
     RosInterface::edit_mutex.unlock();
 

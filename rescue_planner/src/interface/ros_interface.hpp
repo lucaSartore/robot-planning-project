@@ -7,6 +7,7 @@
 #include "obstacles_msgs/ObstacleArrayMsg.h"
 #include "geometry_msgs/Polygon.h"
 #include "geometry_msgs/PoseArray.h"
+#include "nav_msgs/Odometry.h"
 #include <optional>
 
 class RosInterface: public Interface {
@@ -24,6 +25,7 @@ public:
     static bool victims_done;
     static bool map_done;
     static bool exit_done;
+    static bool position_done;
     static std::mutex map_ready_mutex;
     static std::mutex edit_mutex;
     static std::optional<ros::NodeHandle> node_handle;
@@ -33,4 +35,5 @@ public:
     static void VictimCallback(const obstacles_msgs::ObstacleArrayMsg & msg);
     static void MapCallback(const geometry_msgs::Polygon & msg);
     static void ExitCallback(const geometry_msgs::PoseArray & msg);
+    static void RobotPositionCallback(const nav_msgs::Odometry & msg);
 };

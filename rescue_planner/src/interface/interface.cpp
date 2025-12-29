@@ -3,19 +3,14 @@
 Map Interface::GetMap() {};
 void Interface::OutputTrajectory(vector<Point> trajectory) {};
 
-// Point
 Point::Point(float x, float y) : x(x), y(y) {}
 
-// Exit
-Exit::Exit(Point pos, float orient) : position(pos), orientation(orient) {}
+Pose::Pose(Point pos, float orient) : position(pos), orientation(orient) {}
 
-// PolygonObstacle
 PolygonObstacle::PolygonObstacle(const vector<Point>& pts) : points(pts) {}
 
-// CylinderObstacle
 CylinderObstacle::CylinderObstacle(Point c, float r) : center(c), radius(r) {}
 
-// Obstacle Static Factories
 Obstacle Obstacle::CreatePolygon(const vector<Point>& pts) {
     Obstacle o;
     o.kind = Polygon;
@@ -31,13 +26,10 @@ Obstacle Obstacle::CreateCylinder(Point center, float radius) {
 }
 
 
-
-// Victim
 Victim::Victim(Point pos, float val) : position(pos), value(val) {}
 
-// Map
-Map::Map(Exit e, vector<Point> b, vector<Victim> v, vector<Obstacle> o) 
-    : exit(e), borders(b), victims(v), obstacles(o) {}
+Map::Map(Pose e, Pose r, vector<Point> b, vector<Victim> v, vector<Obstacle> o) 
+    : exit(e), robot_position(r), borders(b), victims(v), obstacles(o) {}
 
 
 ostream& operator<<(ostream& os, const Point& p) {
@@ -45,8 +37,8 @@ ostream& operator<<(ostream& os, const Point& p) {
     return os;
 }
 
-ostream& operator<<(ostream& os, const Exit& e) {
-    os << "Exit[Pos: " << e.position << ", Orient: " << e.orientation << "rad]";
+ostream& operator<<(ostream& os, const Pose& e) {
+    os << "Pose[Pos: " << e.position << ", Orient: " << e.orientation << "rad]";
     return os;
 }
 
@@ -73,7 +65,9 @@ ostream& operator<<(ostream& os, const Victim& v) {
 
 ostream& operator<<(ostream& os, const Map& m) {
     os << "--- Map Report ---\n";
-    os << m.exit << "\n";
+    os << "Exit: " << m.exit << "\n";
+
+    os << "RobotPosition: " << m.robot_position << "\n";
     
     os << "Borders: ";
     for (const auto& p : m.borders) os << p << " ";

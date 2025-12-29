@@ -15,15 +15,15 @@ public:
     friend ostream& operator<<(ostream& os, const Point& p);
 };
 
-class Exit {
+class Pose {
 public:
     Point position;
     // orientation in radiants on the xy plane
-    // zero is pointing upword
+    // zero is pointing to the right
     float orientation; 
 
-    Exit(Point pos = Point(), float orient = 0.0f);
-    friend ostream& operator<<(ostream& os, const Exit& e);
+    Pose(Point pos = Point(), float orient = 0.0f);
+    friend ostream& operator<<(ostream& os, const Pose& e);
 };
 
 class PolygonObstacle {
@@ -68,13 +68,14 @@ public:
 
 class Map {
 public:
-    Exit exit;
+    Pose exit;
+    Pose robot_position;
     vector<Point> borders;
     vector<Victim> victims;
     vector<Obstacle> obstacles;
 
     Map() = default;
-    Map(Exit e, vector<Point> b, vector<Victim> v, vector<Obstacle> o);
+    Map(Pose e, Pose r, vector<Point> b, vector<Victim> v, vector<Obstacle> o);
     friend ostream& operator<<(ostream& os, const Map& m);
 };
 
