@@ -18,6 +18,8 @@ public:
 class Exit {
 public:
     Point position;
+    // orientation in radiants on the xy plane
+    // zero is pointing upword
     float orientation; 
 
     Exit(Point pos = Point(), float orient = 0.0f);
@@ -43,12 +45,8 @@ enum ObstacleKind { Polygon, Cylinder };
 class Obstacle {
 public:
     ObstacleKind kind;
-    union Value {
-        PolygonObstacle polygon;
-        CylinderObstacle cylinder;
-        Value() {} 
-        ~Value() {} 
-    } value;
+    PolygonObstacle polygon;
+    CylinderObstacle cylinder;
 
     // Static factory methods
     static Obstacle CreatePolygon(const vector<Point>& pts);
@@ -57,8 +55,6 @@ public:
     friend ostream& operator<<(ostream& os, const Obstacle& o);
 
     Obstacle() {}
-    Obstacle(const Obstacle& other);
-    Obstacle& operator=(const Obstacle& other);
 };
 
 class Victim {
@@ -88,3 +84,5 @@ public:
     virtual Map GetMap() = 0;
     virtual void OutputTrajectory(vector<Point> trajectory) = 0;
 };
+
+

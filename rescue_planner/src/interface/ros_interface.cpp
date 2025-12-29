@@ -1,5 +1,7 @@
 #include "ros_interface.hpp"
 #include "interface.hpp"
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 
 Map RosInterface::built_map;
@@ -21,7 +23,6 @@ RosInterface::RosInterface(){
         return;
     }
     RosInterface::initialized = true;
-    std::cout << "Entering interface config" << std::endl;
 
     RosInterface::built_map = Map();
     RosInterface::under_construction_map = Map();
@@ -60,20 +61,84 @@ RosInterface::RosInterface(){
 
 
 void RosInterface::ObstacleCallback(const obstacles_msgs::ObstacleArrayMsg & msg) {
-    ROS_INFO("I read [%ld] obstacles", msg.obstacles.size());
+    RosInterface::edit_mutex.lock();
+    auto v = vector<Obstacle>();
+    for (int i=0; i<msg.obstacles.size(); i++) {
+        auto obstacle = msg.obstacles[i];
+
+        if (obstacle.radius == 0) {
+            auto v2 = vector<Point>();
+            
+            for (int j=0; j<obstacle.polygon.points.size(); j++) {
+                auto point = obstacle.polygon.points[j];
+                v2.push_back(
+                    Point(point.x, point.y)
+                );
+            }
+
+            v.push_back(Obstacle::CreatePolygon(v2));
+        } else {
+            v.push_back(Obstacle::CreateCylinder(
+                Point(obstacle.polygon.points[0].x, obstacle.polygon.points[0].y),
+                obstacle.radius 
+            ));
+        }
+    }
+    RosInterface::under_construction_map.obstacles = v;
+    RosInterface::obstacles_done = true;
+    RosInterface::edit_mutex.unlock();
+
+    TryExportMap();
 }
 
 void RosInterface::VictimCallback(const obstacles_msgs::ObstacleArrayMsg & msg) {
-    ROS_INFO("I read [%ld] obstacles", msg.obstacles.size());
+    RosInterface::edit_mutex.lock();
+    auto v = vector<Victim>();
+    for (int i=0; i<msg.obstacles.size(); i++) {
+        auto obstacle = msg.obstacles[i];
+        v.push_back(Victim(
+            Point(obstacle.polygon.points[0].x, obstacle.polygon.points[0].y),
+            obstacle.radius 
+        ));
+    }
+    RosInterface::under_construction_map.victims = v;
+    RosInterface::victims_done = true;
+    RosInterface::edit_mutex.unlock();
+
+    TryExportMap();
 }
 
 void RosInterface::MapCallback(const geometry_msgs::Polygon & msg) {
-    ROS_INFO("I read a poligon with [%ld] points", msg.points.size());
+    RosInterface::edit_mutex.lock();
+    auto v = vector<Point>();
+    for (int i=0; i<msg.points.size(); i++) {
+        auto point = msg.points[i];
+        v.push_back(Point(point.x, point.y));
+    }
+    RosInterface::under_construction_map.borders = v;
+    RosInterface::map_done = true;
+    RosInterface::edit_mutex.unlock();
+
+    TryExportMap();
 }
 
 void RosInterface::ExitCallback(const geometry_msgs::PoseArray & msg) {
     auto pos = msg.poses[0];
-    ROS_INFO("Gate found at: x=[%f. y=[%f]", pos.position.x, pos.position.y);
+    // 1. Convert geometry_msgs to tf2 Quaternion
+    tf2::Quaternion q_tf2;
+    tf2::fromMsg(pos.orientation, q_tf2);
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(q_tf2).getRPY(roll, pitch, yaw);
+
+    RosInterface::edit_mutex.lock();
+    RosInterface::under_construction_map.exit = Exit(
+        Point(pos.position.x, pos.position.y),
+        yaw
+    );
+    RosInterface::exit_done = true;
+    RosInterface::edit_mutex.unlock();
+
+    TryExportMap();
 }
 
 void RosInterface::TryExportMap() {
@@ -81,6 +146,11 @@ void RosInterface::TryExportMap() {
 
     bool is_ready = RosInterface::obstacles_done && RosInterface::victims_done
         && RosInterface::map_done && RosInterface::exit_done;
+
+    if (!is_ready) {
+        RosInterface::edit_mutex.unlock();
+        return;
+    }
 
     RosInterface::built_map = RosInterface::under_construction_map;
     RosInterface::under_construction_map = Map();
@@ -91,6 +161,8 @@ void RosInterface::TryExportMap() {
     RosInterface::exit_done = false;
 
     RosInterface::edit_mutex.unlock();
+
+    cout << "Map build: " << RosInterface::built_map << endl;
 }
 
 Map RosInterface::GetMap(){
