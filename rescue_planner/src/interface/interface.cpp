@@ -5,7 +5,17 @@ void Interface::OutputTrajectory(vector<Point> trajectory) {};
 
 Point::Point(float x, float y) : x(x), y(y) {}
 
+template<> struct std::hash<Point> {
+    std::size_t operator()(Point const& s) const noexcept {
+        std::size_t h1 = std::hash<float>{}(s.x);
+        std::size_t h2 = std::hash<float>{}(s.y);
+        return h1 ^ (h2 << 1);
+    }
+};
 
+bool Point::operator ==(const Point point) const {
+    return x == point.x && y == point.y;
+}
 void Point::operator +=(const Point point) {
     this->x += point.x;
     this->y += point.y;

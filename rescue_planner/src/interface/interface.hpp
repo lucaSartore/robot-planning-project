@@ -13,6 +13,7 @@ public:
 
     Point(float x = 0.0f, float y = 0.0f);
     friend ostream& operator<<(ostream& os, const Point& p);
+    bool operator ==(const Point point) const;
     void operator +=(const Point point);
     Point operator +(const Point point) const;
 };
