@@ -133,6 +133,15 @@ set(SOURCES
 
     src/interface/debug_interface.cpp
     src/interface/debug_interface.hpp
+
+    src/graph_builder/graph_builder.hpp
+    src/graph_builder/graph_builder.cpp
+
+    src/graph_builder/combinatorial_graph_builder.hpp
+    src/graph_builder/combinatorial_graph_builder.cpp
+
+    src/graph_builder/sampling_graph_builder.hpp
+    src/graph_builder/sampling_graph_builder.cpp
 )
 
 if(DOCKER_ROS)
