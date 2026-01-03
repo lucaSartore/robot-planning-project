@@ -2,164 +2,198 @@
 
 #include <algorithm>
 #include <assert.h>
+#include <iostream>
 #include <math.h>
 #include <tuple>
 #include <set>
 #include <map>
 #include "../util/display.hpp"
+#include <random>
 
 tuple<Triangle, Point> find_first_triangle(std::vector<Point> points);
-vector<int> sort_indexes_by_distance(std::vector<Point> points, Point center, Triangle triangle_to_exclude);
+vector<int> sort_indexes_by_distance(std::vector<Point> points, Point center, std::vector<int> to_exclude);
 bool is_visible(std::vector<Point> points, int source, std::vector<int> perimeter_points, std::tuple<int, int> side);
 std::vector<Triangle> gradual_expansion(std::vector<Point> points, Point center, vector<int> indexes_sorted_by_distance, Triangle seed);
 void debug(std::vector<Triangle> triangles, vector<Point> points);
+bool are_points_inside_triangle(Triangle triangle, vector<int> points_indexes, vector<Point> const & points);
+bool intersect(tuple<int, int> s1, tuple<int, int> s2, vector<Point> const& points);
+bool intersect(tuple<int, int> s1, vector<tuple<int, int>> segments, vector<Point> const& points);
+
+class LinearUnequality {
+public:
+    LinearUnequality(Point a, Point b, Point side_true_point) {
+        special_case = std::abs(a.x - b.x) < 1e-6;
+
+        n=0;
+        m=0;
+        q=0;
+
+        if (special_case) {
+            n = a.x;
+        } else {
+            m = (a.y - b.y) / (a.x - b.x);
+            q = (a.x * b.y - b.x *a.y) / (a.x - b.x);
+        }
+
+        side_true = true;
+        side_true = (*this)(side_true_point);
+    }
+
+    bool operator ()(Point p) {
+        bool result;
+        if (special_case) {
+            result = p.x > n;
+        } else {
+            result =  p.y > m * p.x + q;
+        }
+        return result == side_true;
+    }
+
+    void flip() {
+        side_true = !side_true;
+    }
+
+private:
+    bool side_true;
+    bool special_case;
+    float n;
+    float m;
+    float q;
+};
+
+std::vector<Triangle> triangulate(std::vector<std::vector<Point>> points) {
+    std::vector<Triangle> triangles = {};
+    std::vector<Point> merged_points = {};
+    vector<tuple<int,int>> obstacles_vertexes = {};
+    for (int i = 0; i < points.size(); i++) {
+        // all obstacle must be polycons
+        assert(points[i].size() >= 3);
+        for (int j = 0; j < points[i].size(); j++) {
+            merged_points.push_back(points[i][j]);
+            if (j != 0) {
+                obstacles_vertexes.push_back({
+                    merged_points.size() - 1,
+                    merged_points.size() - 2
+                });
+            }
+        }
+        obstacles_vertexes.push_back({
+            merged_points.size() - 1,
+            merged_points.size() - points[i].size()
+        });
+    }
+    assert(merged_points.size() >= 3);
 
 
-std::vector<Triangle> triangulate(std::vector<Point> points) {
-    assert(points.size() > 3);
-    auto first_triangle_tuple = find_first_triangle(points);
-    auto first_triangle = std::get<0>(first_triangle_tuple);
-    auto center = std::get<1>(first_triangle_tuple);
+    vector<tuple<int, int>> valid_arches = {};
 
-    // indexes sorted by distance (usefull for the next reconstruction)
-    auto indexes_sorted_by_distance = sort_indexes_by_distance(points, center, first_triangle);
+    for (int i=0; i<merged_points.size(); i++) {
+        for (int j=i+1; j<merged_points.size(); j++) {
+            if (!intersect({i,j}, obstacles_vertexes, merged_points)) {
+                valid_arches.push_back({i,j});
+            }
+        }
+    }
 
-    auto raw_triangles = gradual_expansion(points, center, indexes_sorted_by_distance, first_triangle);
+    vector<tuple<int, int>> selected_arches = {};
 
-    debug(raw_triangles, points);
-    return raw_triangles;
+    auto rng = std::default_random_engine {};
+    std::shuffle(valid_arches.begin(), valid_arches.end(), rng);
+    for (auto valid_arch: valid_arches) {
+        if (!intersect(valid_arch, selected_arches, merged_points)) {
+            selected_arches.push_back(valid_arch);
+        }
+    }
+
+    vector<tuple<Point, Point>> arches = {};
+    for (auto a : selected_arches) {
+        arches.push_back({
+            merged_points[std::get<0>(a)],
+            merged_points[std::get<1>(a)]
+        });
+    }
+    display(arches,{});
+
+    return triangles;
 }
 
-
-std::vector<Triangle> gradual_expansion(std::vector<Point> points, Point center, vector<int> indexes_sorted_by_distance, Triangle seed) {
-    std::vector<int> perimeter = { seed.a, seed.b, seed.c };
-    std::vector<Triangle> triangles = {seed};
-
-    for (auto p_index: indexes_sorted_by_distance) {
-        auto p = points[p_index];
-
-        auto cmp = [&](int a, int b) {
-            return distance(points[a], p) < distance(points[b], p);
-        };
-        int perimeter_index = std::distance(
-            perimeter.begin(),
-            std::min_element(perimeter.begin(), perimeter.end(), cmp)
-        );
-
-        auto next = [&](int a) {return (a + 1) % perimeter.size(); };
-        auto prev = [&](int a) {return (a - 1 + perimeter.size()) % perimeter.size(); };
-
-        // go back until the current corner is no longer visible
-        while (true) {
-            int perimeter_index_prev = prev(perimeter_index);
-            tuple<int, int> side = {perimeter[perimeter_index], perimeter[perimeter_index_prev]};
-            if (is_visible(points, p_index, perimeter, side)) {
-                perimeter_index = perimeter_index_prev;
-            } else {
-                break;
-            }
+bool intersect(tuple<int, int> s1, vector<tuple<int, int>> segments, vector<Point> const& points) {
+    for (auto s2: segments) {
+        if (intersect(s1, s2, points)) {
+            return true;
         }
-
-        int perimeter_index_start = perimeter_index;
-
-        // go clockwise and gradually re-create the border
-        while (true) {
-            int perimeter_index_next = next(perimeter_index);
-            tuple<int, int> side = {perimeter[perimeter_index], perimeter[perimeter_index_next]};
-
-            // we reached the end and we no longer need to add triangles
-            if (!is_visible(points, p_index, perimeter, side)) {
-                break;
-            }
-
-            int p1 = perimeter[perimeter_index];
-            int p2 = perimeter[perimeter_index_next];
-            int p3 = p_index;
-
-            assert(p1 != p2);
-            assert(p2 != p3);
-            assert(p3 != p1);
-
-            triangles.push_back({p1, p2, p3 });
-
-            perimeter_index = perimeter_index_next;
-        }
-
-        int perimeter_index_end = perimeter_index;
-
-
-        // re-construct the perimeter
-        vector<int> new_perimeter = {
-            perimeter[perimeter_index_start],
-            p_index,
-            perimeter[perimeter_index_end]
-        };
-        perimeter_index = next(perimeter_index_end);
-        while (perimeter_index != perimeter_index_start) {
-            new_perimeter.push_back(perimeter[perimeter_index]);
-            perimeter_index = next(perimeter_index);
-        }
-
-        perimeter = new_perimeter;
     }
-    return triangles;
+    return false;
+}
+bool intersect(tuple<int, int> s1, tuple<int, int> s2, vector<Point> const& points) {
+
+    auto p1 = points[std::get<0>(s1)];
+    auto p2 = points[std::get<1>(s1)];
+    auto p3 = points[std::get<0>(s2)];
+    auto p4 = points[std::get<1>(s2)];
+
+    if (p1 == p3 || p2 == p3 || p1 == p4 || p2 == p4) {
+        return false;
+    }
+
+
+    float den = (p1.x - p2.x) * (p3.y - p4.y) - (p1.y - p2.y) * (p3.x - p4.x);
+
+    // If denominator is 0, lines are parallel (no intersection)
+    if (den == 0) {
+        return false;
+    }
+
+    float t1 = (p1.x * p2.y - p1.y * p2.x);
+    float t2 = (p3.x * p4.y - p3.y * p4.x);
+
+    float intersect_x = (t1 * (p3.x - p4.x) - (p1.x - p2.x) * t2) / den;
+    float intersect_y = (t1 * (p3.y - p4.y) - (p1.y - p2.y) * t2) / den;
+
+    Point intersection = {intersect_x, intersect_y};
+
+    float d12 = distance(p1, p2);
+    float d34 = distance(p3, p4);
+
+    return distance(p1,intersection) < d12 && distance(p2,intersection) < d12 &&
+        distance(p3,intersection) < d34 && distance(p4,intersection) < d34;
 }
 
 /// given a convex shape made of perimeter_points point and a side of that perimeter
 /// this function true if from a certain point of view (source) the side is visible
-bool is_visible(std::vector<Point> points, int source, std::vector<int> perimeter_points, std::tuple<int, int> side) {
+bool are_points_inside_triangle(Triangle triangle, vector<int> points_indexes, vector<Point> const & points) {
+    int p1_index = triangle.a;
+    int p2_index = triangle.b;
+    int p3_index = triangle.c;
 
-    auto side_1_index = std::get<0>(side);
-    auto side_2_index = std::get<1>(side);
-    auto side_1 = points[side_1_index];
-    auto side_2 = points[side_2_index];
+    auto p1 = points[p1_index];
+    auto p2 = points[p2_index];
+    auto p3 = points[p3_index];
 
-    // special case when the equation has form x > n instead of y > mx + q
-    bool special_case = std::abs(side_1.x - side_2.x) < 1e-6;
+    auto c1 = LinearUnequality(p1, p2, p3);
+    auto c2 = LinearUnequality(p2, p3, p1);
+    auto c3 = LinearUnequality(p3, p1, p2);
 
-    float n=0;
-    float m=0;
-    float q=0;
+    for (int p_index: points_indexes) {
+        auto p = points[p_index];
+        if (
+            c1(p) &&
+            c2(p) &&
+            c3(p)
+        ) {
+            return true;
+        }
 
-    if (special_case) {
-        n = side_1.x;
-    } else {
-        m = (side_1.y - side_2.y) / (side_1.x - side_2.x);
-        q = (side_1.x * side_2.y - side_2.x *side_1.y) / (side_1.x - side_2.x);
     }
-
-    auto unequality = [&](int a) {
-        auto point = points[a];
-        if (special_case) {
-            return point.x > n;
-        } else {
-            return point.y > m * point.x + q;
-        }
-    };
-
-    bool side_of_plane_of_source = unequality(source);
-    for (auto p: perimeter_points) {
-        if (p == side_1_index || p == side_2_index) {
-            continue;
-        }
-        bool side_of_plane_of_p = unequality(p);
-        if (side_of_plane_of_p == side_of_plane_of_source) {
-            return false;
-        }
-    }
-
-    return true;
+    return false;
 }
 
-vector<int> sort_indexes_by_distance(std::vector<Point> points, Point center, Triangle triangle_to_exclude) {
+vector<int> sort_indexes_by_distance(std::vector<Point> points, Point center, vector<int> to_exclude) {
     vector<int> indexes_sorted_by_distance = {};
     for (int i = 0; i < points.size(); i++) {
-        if (
-            i == triangle_to_exclude.a ||
-            i == triangle_to_exclude.b ||
-            i == triangle_to_exclude.c ) {
+        if ( std::find(to_exclude.begin(), to_exclude.end(), i) != to_exclude.end() ) {
             continue;
-            }
+        }
         indexes_sorted_by_distance.push_back(i);
     }
     auto cmp = [&](int a, int b) {
@@ -247,13 +281,17 @@ tuple<Triangle, Point> find_first_triangle(std::vector<Point> points) {
 
 void debug(std::vector<Triangle> triangles, vector<Point> points) {
     vector<tuple<Point, Point>> display_lines = {};
+    vector<Point> display_points = {};
     for (auto t: triangles) {
         auto a = points[t.a];
         auto b = points[t.b];
         auto c = points[t.c];
+        display_points.push_back(a);
+        display_points.push_back(b);
+        display_points.push_back(c);
         display_lines.push_back({a,b});
-        display_lines.push_back({a,c});
+        display_lines.push_back({b,c});
         display_lines.push_back({c,a});
     }
-    display(display_lines, points);
+    display(display_lines, display_points);
 }

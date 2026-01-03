@@ -16,6 +16,8 @@ public:
     bool operator ==(const Point point) const;
     void operator +=(const Point point);
     Point operator +(const Point point) const;
+    void operator /=(const float v);
+    Point operator /(const float v) const;
 };
 
 class Pose {
