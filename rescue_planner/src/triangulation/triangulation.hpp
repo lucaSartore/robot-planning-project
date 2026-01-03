@@ -15,6 +15,6 @@ public:
 
 tuple<Point, float> find_circum_circle(Point p1, Point p2, Point p3);
 float distance(Point p1, Point p2);
-int triangulate(std::vector<Point> points, std::vector<Triangle>& triangles);
+std::vector<Triangle> triangulate(std::vector<Point> points);
 
 

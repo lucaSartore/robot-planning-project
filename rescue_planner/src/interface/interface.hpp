@@ -13,6 +13,8 @@ public:
 
     Point(float x = 0.0f, float y = 0.0f);
     friend ostream& operator<<(ostream& os, const Point& p);
+    void operator +=(const Point point);
+    Point operator +(const Point point) const;
 };
 
 class Pose {

@@ -1,6 +1,8 @@
 #include <iostream>
 #include "interface/debug_interface.hpp"
 #include "interface/interface.hpp"
+#include "graph_builder/combinatorial_graph_builder.hpp"
+
 
 using namespace std;
 
@@ -14,7 +16,15 @@ int main_ros(int argc, char** argv) {
 #else
 int main_debug(int argc, char** argv) {
     DebugInterface interface = DebugInterface();
-    cout << interface.GetMap() << endl;
+    auto map = interface.GetMap();
+    cout << map << endl;
+
+    CombinatorialGraphBuilder builder = CombinatorialGraphBuilder();
+    auto graph = builder.convert(map);
+
+
+
+
     return 0;
 }
 #endif

@@ -9,10 +9,10 @@
 
 tuple<Triangle, Point> find_first_triangle(std::vector<Point> points);
 vector<int> sort_indexes_by_distance(std::vector<Point> points, Point center, Triangle triangle_to_exclude);
-bool is_visible(std::vector<Point> points, int source, std::set<int> perimeter_points, std::tuple<int, int> side);
+bool is_visible(std::vector<Point> points, int source, std::vector<int> perimeter_points, std::tuple<int, int> side);
 std::vector<Triangle> gradual_expansion(std::vector<Point> points, Point center, vector<int> indexes_sorted_by_distance, Triangle seed);
 
-int triangulate(std::vector<Point> points, std::vector<Triangle>& triangles) {
+std::vector<Triangle> triangulate(std::vector<Point> points) {
     assert(points.size() > 3);
     auto first_triangle_tuple = find_first_triangle(points);
     auto first_triangle = std::get<0>(first_triangle_tuple);
@@ -22,22 +22,14 @@ int triangulate(std::vector<Point> points, std::vector<Triangle>& triangles) {
     auto indexes_sorted_by_distance = sort_indexes_by_distance(points, center, first_triangle);
 
     auto raw_triangles = gradual_expansion(points, center, indexes_sorted_by_distance, first_triangle);
+
+    return raw_triangles;
 }
 
 
 std::vector<Triangle> gradual_expansion(std::vector<Point> points, Point center, vector<int> indexes_sorted_by_distance, Triangle seed) {
-    std::set<int> perimeter_points = { seed.a, seed.b, seed.c };
-    std::map<int,int> point_to_clockwise_neighbour = {
-        {seed.a, seed.b},
-        {seed.b, seed.c},
-        {seed.c, seed.a},
-    };
-    std::map<int,int> point_to_counter_clockwise_neighbour = {
-        {seed.a, seed.c},
-        {seed.c, seed.b},
-        {seed.b, seed.a},
-    };
-    vector<Triangle> triangles = {seed};
+    std::vector<int> perimeter = { seed.a, seed.b, seed.c };
+    std::vector<Triangle> triangles = {seed};
 
     for (auto p_index: indexes_sorted_by_distance) {
         auto p = points[p_index];
@@ -45,55 +37,73 @@ std::vector<Triangle> gradual_expansion(std::vector<Point> points, Point center,
         auto cmp = [&](int a, int b) {
             return distance(points[a], p) < distance(points[b], p);
         };
-        int closes_point = *std::min_element(perimeter_points.begin(), perimeter_points.end(), cmp);
+        int perimeter_index = std::distance(
+            perimeter.begin(),
+            std::min_element(perimeter.begin(), perimeter.end(), cmp)
+        );
 
-        int point = 0;
-        // go counter_clockwise until the edge is no longer visible from the current point
+        auto next = [&](int a) {return (a + 1) % perimeter.size(); };
+        auto prev = [&](int a) {return (a - 1 + perimeter.size()) % perimeter.size(); };
+
+        // go back until the current corner is no longer visible
         while (true) {
-            int point_next = point_to_counter_clockwise_neighbour[point];
-            if (is_visible(points, source=p_index, perimeter_points=perimeter_points, side={point, point_next})) {
-                point = point_next;
+            int perimeter_index_prev = prev(perimeter_index);
+            tuple<int, int> side = {perimeter[perimeter_index], perimeter[perimeter_index_prev]};
+            if (is_visible(points, p_index, perimeter, side)) {
+                perimeter_index = perimeter_index_prev;
             } else {
                 break;
             }
         }
 
-        int point_to_remove_from_border = -1;
+        int perimeter_index_start = perimeter_index;
+
         // go clockwise and gradually re-create the border
         while (true) {
-            int point_next = point_to_clockwise_neighbour[point];
+            int perimeter_index_next = next(perimeter_index);
+            tuple<int, int> side = {perimeter[perimeter_index], perimeter[perimeter_index_next]};
 
             // we reached the end and we no longer need to add triangles
-            if (!is_visible(points, source=p_index, perimeter_points=perimeter_points, side={point, point_next})) {
+            if (!is_visible(points, p_index, perimeter, side)) {
                 break;
             }
 
-            // repair the border
-            point_to_clockwise_neighbour[point] = p_index;
-            point_to_clockwise_neighbour[point_next] = p_index;
+            int p1 = perimeter[perimeter_index];
+            int p2 = perimeter[perimeter_index_next];
+            int p3 = p_index;
 
-            // create the new triangle
-            triangles.push_back({point, point_next, p_index});
+            assert(p1 != p2);
+            assert(p2 != p3);
+            assert(p3 != p1);
 
-            // potentially need to remove one point from the border
-            if (point_to_remove_from_border != -1) {
-                perimeter_points.remove(point_to_remove_from_border);
-            }
+            triangles.push_back({p1, p2, p3 });
 
-            // the next point will need to be removed if
-            // we add another triangle
-            point_to_remove_from_border = point_next;
-
-            point = point_next;
+            perimeter_index = perimeter_index_next;
         }
 
-        return triangles;
+        int perimeter_index_end = perimeter_index;
+
+
+        // re-construct the perimeter
+        vector<int> new_perimeter = {
+            perimeter[perimeter_index_start],
+            p_index,
+            perimeter[perimeter_index_end]
+        };
+        perimeter_index = next(perimeter_index_end);
+        while (perimeter_index != perimeter_index_start) {
+            new_perimeter.push_back(perimeter[perimeter_index]);
+            perimeter_index = next(perimeter_index);
+        }
+
+        perimeter = new_perimeter;
     }
+    return triangles;
 }
 
 /// given a convex shape made of perimeter_points point and a side of that perimeter
 /// this function true if from a certain point of view (source) the side is visible
-bool is_visible(std::vector<Point> points, int source, std::set<int> perimeter_points, std::tuple<int, int> side) {
+bool is_visible(std::vector<Point> points, int source, std::vector<int> perimeter_points, std::tuple<int, int> side) {
 
     auto side_1_index = std::get<0>(side);
     auto side_2_index = std::get<1>(side);
@@ -103,7 +113,9 @@ bool is_visible(std::vector<Point> points, int source, std::set<int> perimeter_p
     // special case when the equation has form x > n instead of y > mx + q
     bool special_case = std::abs(side_1.x - side_2.x) < 1e-6;
 
-    float n=0; m=0; q=0;
+    float n=0;
+    float m=0;
+    float q=0;
 
     if (special_case) {
         n = side_1.x;
