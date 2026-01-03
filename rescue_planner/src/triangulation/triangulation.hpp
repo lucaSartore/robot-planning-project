@@ -12,4 +12,9 @@ public:
     int c;
 };
 
-int triangulate(std::vector<Point> points, std::vector<Triangle> triangles);
+
+tuple<Point, float> find_circum_circle(Point p1, Point p2, Point p3);
+float distance(Point p1, Point p2);
+int triangulate(std::vector<Point> points, std::vector<Triangle>& triangles);
+
+
