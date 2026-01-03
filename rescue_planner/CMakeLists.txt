@@ -142,6 +142,9 @@ set(SOURCES
 
     src/graph_builder/sampling_graph_builder.hpp
     src/graph_builder/sampling_graph_builder.cpp
+
+    src/util/display.hpp
+    src/util/display.cpp
 )
 
 if(DOCKER_ROS)
@@ -249,7 +252,6 @@ endif ()
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
 
-
 #############
 ## Testing ##
 #############
@@ -262,3 +264,6 @@ endif ()
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
+configure_file(src/util/display.py display.py COPYONLY)
+#configure_file(package.xml display.py COPYONLY)

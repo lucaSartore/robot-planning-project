@@ -6,11 +6,14 @@
 #include <tuple>
 #include <set>
 #include <map>
+#include "../util/display.hpp"
 
 tuple<Triangle, Point> find_first_triangle(std::vector<Point> points);
 vector<int> sort_indexes_by_distance(std::vector<Point> points, Point center, Triangle triangle_to_exclude);
 bool is_visible(std::vector<Point> points, int source, std::vector<int> perimeter_points, std::tuple<int, int> side);
 std::vector<Triangle> gradual_expansion(std::vector<Point> points, Point center, vector<int> indexes_sorted_by_distance, Triangle seed);
+void debug(std::vector<Triangle> triangles, vector<Point> points);
+
 
 std::vector<Triangle> triangulate(std::vector<Point> points) {
     assert(points.size() > 3);
@@ -23,6 +26,7 @@ std::vector<Triangle> triangulate(std::vector<Point> points) {
 
     auto raw_triangles = gradual_expansion(points, center, indexes_sorted_by_distance, first_triangle);
 
+    debug(raw_triangles, points);
     return raw_triangles;
 }
 
@@ -239,4 +243,17 @@ tuple<Triangle, Point> find_first_triangle(std::vector<Point> points) {
     );
 
     return {{p1, p2, p3}, center};
+}
+
+void debug(std::vector<Triangle> triangles, vector<Point> points) {
+    vector<tuple<Point, Point>> display_lines = {};
+    for (auto t: triangles) {
+        auto a = points[t.a];
+        auto b = points[t.b];
+        auto c = points[t.c];
+        display_lines.push_back({a,b});
+        display_lines.push_back({a,c});
+        display_lines.push_back({c,a});
+    }
+    display(display_lines, points);
 }

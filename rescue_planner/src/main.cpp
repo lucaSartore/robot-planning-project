@@ -2,6 +2,7 @@
 #include "interface/debug_interface.hpp"
 #include "interface/interface.hpp"
 #include "graph_builder/combinatorial_graph_builder.hpp"
+#include "util/display.hpp"
 
 
 using namespace std;
@@ -17,13 +18,10 @@ int main_ros(int argc, char** argv) {
 int main_debug(int argc, char** argv) {
     DebugInterface interface = DebugInterface();
     auto map = interface.GetMap();
-    cout << map << endl;
+    // cout << map << endl;
 
     CombinatorialGraphBuilder builder = CombinatorialGraphBuilder();
     auto graph = builder.convert(map);
-
-
-
 
     return 0;
 }
