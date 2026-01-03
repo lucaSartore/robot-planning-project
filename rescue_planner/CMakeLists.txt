@@ -1,23 +1,30 @@
-cmake_minimum_required(VERSION 3.0.2)
+
+option(DOCKER_ROS "Compile for ros or for debug" OFF)
+
+if(DOCKER_ROS)
+    cmake_minimum_required(VERSION 3.0.2)
+else ()
+    cmake_minimum_required(VERSION 3.10)
+endif ()
+
 project(rescue_planner)
 
 add_compile_options(-std=c++17)
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
-  map_pkg
-)
+if(DOCKER_ROS)
+    # used to define if import are only for the LSP or if they are supposed to be
+    add_compile_definitions(DOCKER_ROS)
 
-# used to define if import are only for the LSP or if they are supposed to be
-# the "compiled" ros import
-add_compile_definitions(DOCKER_ROS)
-## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+    ## Find catkin macros and libraries
+    ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
+    ## is used, also find other catkin packages
+    find_package(catkin REQUIRED COMPONENTS
+            roscpp
+            rospy
+            std_msgs
+            map_pkg
+    )
+endif ()
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -96,43 +103,60 @@ add_compile_definitions(DOCKER_ROS)
 #   cfg/DynReconf2.cfg
 # )
 
-###################################
-## catkin specific configuration ##
-###################################
-## The catkin_package macro generates cmake config files for your package
-## Declare things to be passed to dependent projects
-## INCLUDE_DIRS: uncomment this if your package contains header files
-## LIBRARIES: libraries you create in this project that dependent projects also need
-## CATKIN_DEPENDS: catkin_packages dependent projects also need
-## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES rescue_planner
-#  CATKIN_DEPENDS roscpp rospy std_msgs
-#  DEPENDS system_lib
-)
+
+if(DOCKER_ROS)
+    ###################################
+    ## catkin specific configuration ##
+    ###################################
+    ## The catkin_package macro generates cmake config files for your package
+    ## Declare things to be passed to dependent projects
+    ## INCLUDE_DIRS: uncomment this if your package contains header files
+    ## LIBRARIES: libraries you create in this project that dependent projects also need
+    ## CATKIN_DEPENDS: catkin_packages dependent projects also need
+    ## DEPENDS: system dependencies of this project that dependent projects also need
+    catkin_package(
+    #  INCLUDE_DIRS include
+    #  LIBRARIES rescue_planner
+    #  CATKIN_DEPENDS roscpp rospy std_msgs
+    #  DEPENDS system_lib
+    )
+endif ()
 
 set(SOURCES
     src/main.cpp
 
     src/interface/interface.cpp
     src/interface/interface.hpp
-    src/interface/ros_interface.cpp
-    src/interface/ros_interface.hpp
+
+    src/triangulation/triangulation.cpp
+    src/triangulation/triangulation.hpp
+
     src/interface/debug_interface.cpp
     src/interface/debug_interface.hpp
 )
+
+if(DOCKER_ROS)
+    set(
+        SOURCES
+        ${SOURCES}
+        src/interface/ros_interface.cpp
+        src/interface/ros_interface.hpp
+            src/main.cpp
+    )
+endif ()
 
 ###########
 ## Build ##
 ###########
 
-## Specify additional locations of header files
-## Your package locations should be listed before other locations
-include_directories(
-# include
-  ${catkin_INCLUDE_DIRS}
-)
+if(DOCKER_ROS)
+    ## Specify additional locations of header files
+    ## Your package locations should be listed before other locations
+    include_directories(
+    # include
+      ${catkin_INCLUDE_DIRS}
+    )
+endif ()
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -147,8 +171,12 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(planner ${SOURCES})
-target_link_libraries(planner ${catkin_LIBRARIES})
+add_executable(planner ${SOURCES}
+        src/main.cpp)
+
+if(DOCKER_ROS)
+    target_link_libraries(planner ${catkin_LIBRARIES})
+endif ()
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -185,9 +213,11 @@ target_link_libraries(planner ${catkin_LIBRARIES})
 # )
 
 
-install(TARGETS planner
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
+if (DOCKER_ROS)
+    install(TARGETS planner
+      RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+    )
+endif ()
 ## Mark libraries for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
 # install(TARGETS ${PROJECT_NAME}
