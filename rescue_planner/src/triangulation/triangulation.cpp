@@ -10,6 +10,7 @@
 tuple<Triangle, Point> find_first_triangle(std::vector<Point> points);
 vector<int> sort_indexes_by_distance(std::vector<Point> points, Point center, Triangle triangle_to_exclude);
 bool is_visible(std::vector<Point> points, int source, std::set<int> perimeter_points, std::tuple<int, int> side);
+std::vector<Triangle> gradual_expansion(std::vector<Point> points, Point center, vector<int> indexes_sorted_by_distance, Triangle seed);
 
 int triangulate(std::vector<Point> points, std::vector<Triangle>& triangles) {
     assert(points.size() > 3);
@@ -19,6 +20,8 @@ int triangulate(std::vector<Point> points, std::vector<Triangle>& triangles) {
 
     // indexes sorted by distance (usefull for the next reconstruction)
     auto indexes_sorted_by_distance = sort_indexes_by_distance(points, center, first_triangle);
+
+    auto raw_triangles = gradual_expansion(points, center, indexes_sorted_by_distance, first_triangle);
 }
 
 
@@ -37,8 +40,54 @@ std::vector<Triangle> gradual_expansion(std::vector<Point> points, Point center,
     vector<Triangle> triangles = {seed};
 
     for (auto p_index: indexes_sorted_by_distance) {
-        p = points[p_index];
+        auto p = points[p_index];
 
+        auto cmp = [&](int a, int b) {
+            return distance(points[a], p) < distance(points[b], p);
+        };
+        int closes_point = *std::min_element(perimeter_points.begin(), perimeter_points.end(), cmp);
+
+        int point = 0;
+        // go counter_clockwise until the edge is no longer visible from the current point
+        while (true) {
+            int point_next = point_to_counter_clockwise_neighbour[point];
+            if (is_visible(points, source=p_index, perimeter_points=perimeter_points, side={point, point_next})) {
+                point = point_next;
+            } else {
+                break;
+            }
+        }
+
+        int point_to_remove_from_border = -1;
+        // go clockwise and gradually re-create the border
+        while (true) {
+            int point_next = point_to_clockwise_neighbour[point];
+
+            // we reached the end and we no longer need to add triangles
+            if (!is_visible(points, source=p_index, perimeter_points=perimeter_points, side={point, point_next})) {
+                break;
+            }
+
+            // repair the border
+            point_to_clockwise_neighbour[point] = p_index;
+            point_to_clockwise_neighbour[point_next] = p_index;
+
+            // create the new triangle
+            triangles.push_back({point, point_next, p_index});
+
+            // potentially need to remove one point from the border
+            if (point_to_remove_from_border != -1) {
+                perimeter_points.remove(point_to_remove_from_border);
+            }
+
+            // the next point will need to be removed if
+            // we add another triangle
+            point_to_remove_from_border = point_next;
+
+            point = point_next;
+        }
+
+        return triangles;
     }
 }
 
