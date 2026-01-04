@@ -2,7 +2,7 @@
 #include "../interface/interface.hpp"
 #include <vector>
 #include <iostream>
-#include <exception>
+#include <unordered_map>
 
 
 class Node {
@@ -10,12 +10,13 @@ public:
     Point value;
     vector<int> adjacent;
     explicit Node(Point value);
+    Node();
     void add_adjacent(int value);
     friend std::ostream &operator<<(std::ostream &os, Node &n);
 };
 class Graph {
 public:
-    vector<Node> nodes;
+    unordered_map<int, Node> nodes;
     int exit_node;
     int robot_position;
     vector<int> victims_odes;

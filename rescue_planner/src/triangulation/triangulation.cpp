@@ -80,14 +80,14 @@ std::vector<Triangle> triangulate(std::vector<Point> const& points, vector<tuple
         }
     }
 
-    vector<tuple<Point, Point>> arches = {};
-    for (auto a : selected_arches) {
-        arches.push_back({
-            points[std::get<0>(a)],
-            points[std::get<1>(a)]
-        });
-    }
-    display(arches,{});
+    // vector<tuple<Point, Point>> arches = {};
+    // for (auto a : selected_arches) {
+    //     arches.push_back({
+    //         points[std::get<0>(a)],
+    //         points[std::get<1>(a)]
+    //     });
+    // }
+    // display(arches,{});
 
     return build_triangles_from_arches(selected_arches);
 }

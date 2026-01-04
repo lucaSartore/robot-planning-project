@@ -4,6 +4,7 @@
 #include <tuple>
 #include <unordered_set>
 #include <unordered_map>
+#include "../util/display.hpp"
 
 void group_points(Map const& map, vector<Point> &grouped_points, vector<tuple<int,int>> & obstacles_vertexes, vector<int> & points_label);
 Graph build_graph(Map const& map, vector<Triangle> const& triangles, vector<int> const& points_label, vector<Point> const& points);
@@ -16,7 +17,22 @@ Graph CombinatorialGraphBuilder::convert(Map map) {
     group_points(map, grouped_points, obstacle_vertexes, points_labels);
     auto triangles = triangulate(grouped_points, obstacle_vertexes);
 
-    return build_graph(map, triangles, points_labels, grouped_points);
+    auto graph = build_graph(map, triangles, points_labels, grouped_points);
+
+
+    auto debug_data = graph.get_debug_data();
+    auto lines = std::get<0>(debug_data);
+    // lines = {};
+    auto points = std::get<1>(debug_data);
+    for (auto a : obstacle_vertexes) {
+        lines.push_back({
+            grouped_points[std::get<0>(a)],
+            grouped_points[std::get<1>(a)]
+        });
+    }
+    display(lines, points);
+
+    return graph;
 }
 
 Graph build_graph(Map const& map, vector<Triangle> const& triangles, vector<int> const& points_label, vector<Point> const& points) {
@@ -51,14 +67,14 @@ Graph build_graph(Map const& map, vector<Triangle> const& triangles, vector<int>
 
 
     for (auto v: map.victims) {
-        all_graph_points.push_back(v.position);
+        // all_graph_points.push_back(v.position);
         victims_position.push_back(all_graph_points.size() - 1);
     }
 
-    all_graph_points.push_back(map.exit.position);
+    // all_graph_points.push_back(map.exit.position);
     exit_node = all_graph_points.size() - 1;
 
-    all_graph_points.push_back(map.robot_position.position);
+    // all_graph_points.push_back(map.robot_position.position);
     robot_position = all_graph_points.size() - 1;
 
 
@@ -90,6 +106,13 @@ Graph build_graph(Map const& map, vector<Triangle> const& triangles, vector<int>
         insert_vertex(c, p1, p2, ip1, ip2);
         insert_vertex(c, p2, p3, ip2, ip3);
         insert_vertex(c, p3, p1, ip3, ip1);
+    }
+
+
+    for (int i=0; i<all_graph_points.size(); i++) {
+        if (graph.nodes[i].adjacent.size() == 0) {
+            graph.nodes.erase(i);
+        }
     }
 
     return graph;
@@ -124,7 +147,7 @@ void group_points(Map const& map, vector<Point> &grouped_points, vector<tuple<in
         // all obstacle must be polycons
         assert(points[i].size() >= 3);
         for (int j = 0; j < points[i].size(); j++) {
-            points_label.push_back(j);
+            points_label.push_back(i);
             grouped_points.push_back(points[i][j]);
             if (j != 0) {
                 obstacles_vertexes.push_back({

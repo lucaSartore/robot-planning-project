@@ -3,6 +3,7 @@
 #include <unordered_set>
 
 Node::Node(Point value) : value(value) {}
+Node::Node() : value(Point(0,0)) {}
 
 void Node::add_adjacent(int value) {
     this->adjacent.push_back(value);
@@ -18,8 +19,11 @@ std::ostream &operator<<(std::ostream &os, Node &n) {
 }
 
 Graph::Graph(vector<Point> points, int exit_node, int robot_position, vector<int> victims_odes) {
+    this->nodes = {};
+    int i = 0;
     for (const auto& p : points) {
-        this->nodes.emplace_back(p);
+        this->nodes[i] = Node(p);
+        i += 1;
     }
     this->exit_node = exit_node;
     this -> robot_position = robot_position;
@@ -30,9 +34,9 @@ tuple<vector<tuple<Point, Point>>, vector<Point>> Graph::get_debug_data() {
     vector<tuple<Point,Point>> lines;
     vector<Point> points;
     for (const auto& p : nodes) {
-        points.push_back(p.value);
-        for (const auto& v : p.adjacent) {
-            lines.push_back({p.value, nodes[v].value});
+        points.push_back(p.second.value);
+        for (const auto& v : p.second.adjacent) {
+            lines.push_back({p.second.value, nodes[v].value});
         }
     }
     return {lines, points};
@@ -44,9 +48,8 @@ void Graph::debug() {
 
 
 void Graph::add_adjacent(int a, int b) {
-    if (a >= 0 && static_cast<size_t>(a) < nodes.size()) {
-        nodes[a].add_adjacent(b);
-    }
+    nodes[a].add_adjacent(b);
+    nodes[b].add_adjacent(a);
 }
 
 std::ostream &operator<<(std::ostream &os, Graph &g) {
