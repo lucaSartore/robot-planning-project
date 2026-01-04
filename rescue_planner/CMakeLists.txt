@@ -145,6 +145,8 @@ set(SOURCES
 
     src/util/display.hpp
     src/util/display.cpp
+
+    src/util/hashable_tuple.hpp
 )
 
 if(DOCKER_ROS)

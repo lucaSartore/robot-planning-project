@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <assert.h>
+#include "../util/hashable_tuple.hpp"
 
 vector<int> sort_indexes_by_distance(std::vector<Point> points, Point center, std::vector<int> to_exclude);
 void debug(std::vector<Triangle> triangles, vector<Point> points);
@@ -16,6 +17,9 @@ bool are_points_inside_triangle(Triangle triangle, vector<int> points_indexes, v
 bool intersect(tuple<int, int> s1, tuple<int, int> s2, vector<Point> const& points);
 bool intersect(tuple<int, int> s1, vector<tuple<int, int>> segments, vector<Point> const& points);
 vector<Triangle> build_triangles_from_arches(vector<tuple<int,int>> const& arches);
+float measure_angle(Point o, Point a, Point b);
+float measure_angle(int o, int a, int b, vector<Point> points);
+vector<tuple<int,int>> flip_arches(vector<tuple<int,int>> selected_arches, vector<tuple<int,int>> const& valid_arches, vector<Point> const& points);
 
 class LinearUnequality {
 public:
@@ -80,16 +84,148 @@ std::vector<Triangle> triangulate(std::vector<Point> const& points, vector<tuple
         }
     }
 
-    // vector<tuple<Point, Point>> arches = {};
-    // for (auto a : selected_arches) {
-    //     arches.push_back({
-    //         points[std::get<0>(a)],
-    //         points[std::get<1>(a)]
-    //     });
-    // }
-    // display(arches,{});
+    selected_arches = flip_arches(selected_arches, valid_arches, points);
+
+    vector<tuple<Point, Point>> arches = {};
+    for (auto a : selected_arches) {
+        arches.push_back({
+            points[std::get<0>(a)],
+            points[std::get<1>(a)]
+        });
+    }
+    display(arches,{});
 
     return build_triangles_from_arches(selected_arches);
+}
+
+// second algorithm:
+//https://www.iris.unicampus.it/retrieve/12fb0a06-12e7-4900-93ab-e64b420dc290/A_Comprehensive_Survey_on_Delaunay_Triangulation_Applications_Algorithms_and_Implementations_Over_CPUs_GPUs_and_FPGAs.pdf
+vector<tuple<int,int>> flip_arches(vector<tuple<int,int>> selected_arches, vector<tuple<int,int>> const& valid_arches, vector<Point> const& points) {
+    unordered_map<
+        tuple<int,int>,
+        unordered_set<
+            tuple<int,int>,
+            hash_duplet
+        >,
+        hash_duplet
+    > arch_to_potential_swap = {};
+
+    unordered_set<tuple<int,int>, hash_duplet> selected_arches_set = {selected_arches.begin(), selected_arches.end()};
+    unordered_set<tuple<int,int>, hash_duplet> flip_queue = {selected_arches.begin(), selected_arches.end()};
+
+    for (int i=0; i<valid_arches.size(); i++) {
+        for (int j=i+1; j<valid_arches.size(); j++) {
+            // reminder: arches are unique as arch.0 < arch.1
+            auto arch_i = valid_arches[i];
+            auto arch_j = valid_arches[j];
+
+            if (arch_to_potential_swap.find(arch_i) == arch_to_potential_swap.end()) {
+                arch_to_potential_swap[arch_i] = {};
+            }
+            if (arch_to_potential_swap.find(arch_j) == arch_to_potential_swap.end()) {
+                arch_to_potential_swap[arch_j] = {};
+            }
+
+            if (intersect(arch_i, arch_j,points)) {
+                arch_to_potential_swap[arch_i].insert(arch_j);
+                arch_to_potential_swap[arch_j].insert(arch_i);
+            }
+        }
+    }
+
+    auto identifier = [](int a1, int a2) {
+        if (a1<a2) {
+            return tuple(a1,a2);
+        } else {
+            return tuple(a2,a1);
+        }
+    };
+
+    auto is_present = [&](int a1, int a2) {
+        auto i = identifier(a1,a2);
+        return selected_arches_set.find(i) != selected_arches_set.end();
+    };
+
+    while (!flip_queue.empty()) {
+
+
+        auto arch = *flip_queue.begin();
+        flip_queue.erase(flip_queue.begin());
+
+        //
+        //                    c
+        //                    |
+        //         flip_with  | -> arch
+        //           ^^^      |
+        // a -  -  -  -  -  -  -  -  -  -  -  -  -  - b
+        //                    |
+        //                    |
+        //                    |
+        //                    d
+        //
+        for (auto flip_with: arch_to_potential_swap[arch]) {
+            int a = std::get<0>(flip_with);
+            int b = std::get<1>(flip_with);
+            int c = std::get<0>(arch);
+            int d = std::get<1>(arch);
+
+            // can't flip if it would result in invalid trianlges
+            if (
+                ! is_present(a,d) ||
+                ! is_present(d,b) ||
+                ! is_present(b,c) ||
+                ! is_present(c,a)
+                ) {
+                continue;
+            }
+
+            float angle_a = measure_angle(a,c,d,points);
+            float angle_b = measure_angle(b,c,d,points);
+
+            if (angle_a + angle_b > 3.1415926) {
+                // necessary condition for flip!
+                selected_arches_set.erase(arch);
+                selected_arches_set.insert(flip_with);
+
+                // all the arches at the edges may need to be flipped again
+                flip_queue.insert(identifier(a,d));
+                flip_queue.insert(identifier(d,b));
+                flip_queue.insert(identifier(b,c));
+                flip_queue.insert(identifier(c,a));
+
+                break;
+            }
+
+        }
+
+    }
+
+    return {selected_arches_set.begin(), selected_arches_set.end()};
+}
+
+float measure_angle(int o, int a, int b, vector<Point> points) {
+    return measure_angle(points[o], points[a], points[b]);
+}
+float measure_angle(Point o, Point a, Point b) {
+    float vax = a.x - o.x;
+    float vay = a.y - o.y;
+    float vbx = b.x - o.x;
+    float vby = b.y - o.y;
+
+    float dot_product = (vax * vbx) + (vay * vby);
+
+    float mag_a = std::sqrt(vax * vax + vay * vay);
+    float mag_b = std::sqrt(vbx * vbx + vby * vby);
+
+    if (mag_a == 0 || mag_b == 0) return 0.0f;
+
+    float cos_theta = dot_product / (mag_a * mag_b);
+
+    cos_theta = std::max(-1.0f, std::min(1.0f, cos_theta));
+
+    float angle_rad = std::acos(cos_theta);
+
+    return std::abs(angle_rad);
 }
 
 vector<Triangle> build_triangles_from_arches(vector<tuple<int,int>> const& arches) {
