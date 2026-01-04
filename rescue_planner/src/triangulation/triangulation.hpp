@@ -29,4 +29,4 @@ float distance(Point p1, Point p2);
 
 std::vector<Triangle> triangulate(std::vector<Point> const& points, vector<tuple<int,int>> const& obstacles_vertexes);
 
-
+int find_triangle_that_include_point(vector<Triangle> const& triangles, vector<Point> const& points, Point point, float margin = 0);

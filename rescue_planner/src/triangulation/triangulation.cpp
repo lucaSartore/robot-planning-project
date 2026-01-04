@@ -23,7 +23,7 @@ vector<tuple<int,int>> flip_arches(vector<tuple<int,int>> selected_arches, vecto
 
 class LinearUnequality {
 public:
-    LinearUnequality(Point a, Point b, Point side_true_point) {
+    LinearUnequality(Point a, Point b, Point side_true_point, float margin = 0) {
         special_case = std::abs(a.x - b.x) < 1e-6;
 
         n=0;
@@ -39,25 +39,29 @@ public:
 
         side_true = true;
         side_true = (*this)(side_true_point);
+        this->margin = 0;
+        this->margin = side_true? margin: -margin;
     }
 
     bool operator ()(Point p) {
         bool result;
         if (special_case) {
-            result = p.x > n;
+            result = p.x + margin > n;
         } else {
-            result =  p.y > m * p.x + q;
+            result =  p.y + margin > m * p.x + q;
         }
         return result == side_true;
     }
 
     void flip() {
         side_true = !side_true;
+        margin = -margin;
     }
 
 private:
     bool side_true;
     bool special_case;
+    float margin;
     float n;
     float m;
     float q;
@@ -201,6 +205,33 @@ vector<tuple<int,int>> flip_arches(vector<tuple<int,int>> selected_arches, vecto
     }
 
     return {selected_arches_set.begin(), selected_arches_set.end()};
+}
+
+int find_triangle_that_include_point(vector<Triangle> const& triangles, vector<Point> const& points, Point point, float margin) {
+    for (int i=0; i<triangles.size(); i++) {
+        auto triangle = triangles[i];
+
+        int p1_index = triangle.a;
+        int p2_index = triangle.b;
+        int p3_index = triangle.c;
+
+        auto p1 = points[p1_index];
+        auto p2 = points[p2_index];
+        auto p3 = points[p3_index];
+
+        auto c1 = LinearUnequality(p1, p2, p3, margin);
+        auto c2 = LinearUnequality(p2, p3, p1, margin);
+        auto c3 = LinearUnequality(p3, p1, p2, margin);
+
+        if (
+            c1(point) &&
+            c2(point) &&
+            c3(point)
+        ) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 float measure_angle(int o, int a, int b, vector<Point> points) {
