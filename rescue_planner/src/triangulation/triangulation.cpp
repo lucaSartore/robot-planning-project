@@ -1,19 +1,12 @@
 #include "triangulation.hpp"
 
 #include <algorithm>
-#include <assert.h>
 #include <iostream>
-#include <math.h>
 #include <tuple>
-#include <set>
-#include <map>
 #include "../util/display.hpp"
 #include <random>
 
-tuple<Triangle, Point> find_first_triangle(std::vector<Point> points);
 vector<int> sort_indexes_by_distance(std::vector<Point> points, Point center, std::vector<int> to_exclude);
-bool is_visible(std::vector<Point> points, int source, std::vector<int> perimeter_points, std::tuple<int, int> side);
-std::vector<Triangle> gradual_expansion(std::vector<Point> points, Point center, vector<int> indexes_sorted_by_distance, Triangle seed);
 void debug(std::vector<Triangle> triangles, vector<Point> points);
 bool are_points_inside_triangle(Triangle triangle, vector<int> points_indexes, vector<Point> const & points);
 bool intersect(tuple<int, int> s1, tuple<int, int> s2, vector<Point> const& points);
@@ -61,35 +54,14 @@ private:
     float q;
 };
 
-std::vector<Triangle> triangulate(std::vector<std::vector<Point>> points) {
+std::vector<Triangle> triangulate(std::vector<Point> const& points, vector<tuple<int,int>> const& obstacles_vertexes) {
     std::vector<Triangle> triangles = {};
-    std::vector<Point> merged_points = {};
-    vector<tuple<int,int>> obstacles_vertexes = {};
-    for (int i = 0; i < points.size(); i++) {
-        // all obstacle must be polycons
-        assert(points[i].size() >= 3);
-        for (int j = 0; j < points[i].size(); j++) {
-            merged_points.push_back(points[i][j]);
-            if (j != 0) {
-                obstacles_vertexes.push_back({
-                    merged_points.size() - 1,
-                    merged_points.size() - 2
-                });
-            }
-        }
-        obstacles_vertexes.push_back({
-            merged_points.size() - 1,
-            merged_points.size() - points[i].size()
-        });
-    }
-    assert(merged_points.size() >= 3);
-
 
     vector<tuple<int, int>> valid_arches = {};
 
-    for (int i=0; i<merged_points.size(); i++) {
-        for (int j=i+1; j<merged_points.size(); j++) {
-            if (!intersect({i,j}, obstacles_vertexes, merged_points)) {
+    for (int i=0; i<points.size(); i++) {
+        for (int j=i+1; j<points.size(); j++) {
+            if (!intersect({i,j}, obstacles_vertexes, points)) {
                 valid_arches.push_back({i,j});
             }
         }
@@ -100,7 +72,7 @@ std::vector<Triangle> triangulate(std::vector<std::vector<Point>> points) {
     auto rng = std::default_random_engine {};
     std::shuffle(valid_arches.begin(), valid_arches.end(), rng);
     for (auto valid_arch: valid_arches) {
-        if (!intersect(valid_arch, selected_arches, merged_points)) {
+        if (!intersect(valid_arch, selected_arches, points)) {
             selected_arches.push_back(valid_arch);
         }
     }
@@ -108,8 +80,8 @@ std::vector<Triangle> triangulate(std::vector<std::vector<Point>> points) {
     vector<tuple<Point, Point>> arches = {};
     for (auto a : selected_arches) {
         arches.push_back({
-            merged_points[std::get<0>(a)],
-            merged_points[std::get<1>(a)]
+            points[std::get<0>(a)],
+            points[std::get<1>(a)]
         });
     }
     display(arches,{});
@@ -205,79 +177,12 @@ vector<int> sort_indexes_by_distance(std::vector<Point> points, Point center, ve
     return indexes_sorted_by_distance;
 }
 
-tuple<Point, float> find_circum_circle(Point p1, Point p2, Point p3) {
-    // Calculate the determinant D
-    float D = 2 * (p1.x * (p2.y - p3.y) + p2.x * (p3.y - p1.y) + p3.x * (p1.y - p2.y));
-
-    // If D is 0, the points are collinear and no circle exists
-    if (std::abs(D) < 1e-6) {
-        return { {0, 0}, -1.0f };
-    }
-
-    float p1_sq = p1.x * p1.x + p1.y * p1.y;
-    float p2_sq = p2.x * p2.x + p2.y * p2.y;
-    float p3_sq = p3.x * p3.x + p3.y * p3.y;
-
-    float centerX = (p1_sq * (p2.y - p3.y) + p2_sq * (p3.y - p1.y) + p3_sq * (p1.y - p2.y)) / D;
-    float centerY = (p1_sq * (p3.x - p2.x) + p2_sq * (p1.x - p3.x) + p3_sq * (p2.x - p1.x)) / D;
-
-    Point center = {centerX, centerY};
-
-    // Radius is the distance from center to any point (e.g., p1)
-    float radius = std::sqrt(std::pow(center.x - p1.x, 2) + std::pow(center.y - p1.y, 2));
-
-    return {center, radius};
-}
-
 float distance(Point p1, Point p2) {
     float dx = p1.x - p2.x;
     float dy = p1.y - p2.y;
     return sqrt(dx * dx + dy * dy);
 }
 
-tuple<Triangle, Point> find_first_triangle(std::vector<Point> points) {
-    // pick p1 at random
-    int p1 = 0;
-
-    vector<float> tmp;
-
-    // pick p2 so that it is the closest
-    int p2 = 1;
-    float d_p1_p2 = distance(points[p1], points[p2]);
-    for (int i = 2; i < points.size(); i++) {
-        float d_p1_i = distance(points[p1], points[i]);
-        if ( d_p1_i < d_p1_p2 ) {
-            d_p1_p2 = d_p1_i;
-            p2 = i;
-        }
-    }
-
-    // pick p3 so that the circle area is the smallest
-    int p3 = 2;
-    float radius_with_p3 = std::get<1>(
-        find_circum_circle( points[p1], points[p2], points[p3] )
-    );
-    for (int i = 3; i < points.size(); i++) {
-
-        if (i == p2) {
-            continue;
-        }
-
-        float radius_with_i = std::get<1>(
-            find_circum_circle( points[p1], points[p2], points[i] )
-        );
-
-        if ( radius_with_i < radius_with_p3 ) {
-            radius_with_p3 = radius_with_i;
-            p3 = i;
-        }
-    }
-    Point center = std::get<0>(
-        find_circum_circle( points[p1], points[p2], points[p3] )
-    );
-
-    return {{p1, p2, p3}, center};
-}
 
 void debug(std::vector<Triangle> triangles, vector<Point> points) {
     vector<tuple<Point, Point>> display_lines = {};

@@ -20,6 +20,14 @@ public:
     Point operator /(const float v) const;
 };
 
+template<> struct std::hash<Point> {
+    std::size_t operator()(Point const& s) const noexcept {
+        std::size_t h1 = std::hash<float>{}(s.x);
+        std::size_t h2 = std::hash<float>{}(s.y);
+        return h1 ^ (h2 << 1);
+    }
+};
+
 class Pose {
 public:
     Point position;
@@ -59,7 +67,7 @@ public:
 
     friend ostream& operator<<(ostream& os, const Obstacle& o);
 
-    Obstacle() {}
+    Obstacle() = default;
 };
 
 class Victim {
@@ -86,7 +94,7 @@ public:
 
 class Interface {
 public:
-    virtual ~Interface() {}
+    virtual ~Interface() {};
     virtual Map GetMap() = 0;
     virtual void OutputTrajectory(vector<Point> trajectory) = 0;
 };

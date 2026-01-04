@@ -3,9 +3,6 @@
 #include <iostream>
 
 
-DebugInterface::DebugInterface(){
-}
-
 Map DebugInterface::GetMap(){
 	// Build and return a fixed map for debugging/testing
 	Pose exit = Pose(Point(-7.54319f, 3.05532f), 2.61799f);

@@ -15,10 +15,13 @@ std::ostream &operator<<(std::ostream &os, Node &n) {
     return os;
 }
 
-Graph::Graph(std::vector<Point> points) {
+Graph::Graph(vector<Point> points, int exit_node, int robot_position, vector<int> victims_odes) {
     for (const auto& p : points) {
         this->nodes.emplace_back(p);
     }
+    this->exit_node = exit_node;
+    this -> robot_position = robot_position;
+    this->victims_odes = victims_odes;
 }
 
 void Graph::add_adjacent(int a, int b) {
