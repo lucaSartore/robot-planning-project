@@ -22,6 +22,8 @@ public:
     void add_adjacent(int a, int b);
     Graph(vector<Point> points, int exit_node, int robot_position, vector<int> victims_odes);
     friend std::ostream &operator<<(std::ostream &os, Graph &g);
+    void debug();
+    tuple<vector<tuple<Point, Point>>, vector<Point>> get_debug_data();
 };
 
 class GraphBuilder {

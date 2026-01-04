@@ -5,12 +5,17 @@
 #include <tuple>
 #include "../util/display.hpp"
 #include <random>
+#include <set>
+#include <unordered_map>
+#include <unordered_set>
+#include <assert.h>
 
 vector<int> sort_indexes_by_distance(std::vector<Point> points, Point center, std::vector<int> to_exclude);
 void debug(std::vector<Triangle> triangles, vector<Point> points);
 bool are_points_inside_triangle(Triangle triangle, vector<int> points_indexes, vector<Point> const & points);
 bool intersect(tuple<int, int> s1, tuple<int, int> s2, vector<Point> const& points);
 bool intersect(tuple<int, int> s1, vector<tuple<int, int>> segments, vector<Point> const& points);
+vector<Triangle> build_triangles_from_arches(vector<tuple<int,int>> const& arches);
 
 class LinearUnequality {
 public:
@@ -55,8 +60,6 @@ private:
 };
 
 std::vector<Triangle> triangulate(std::vector<Point> const& points, vector<tuple<int,int>> const& obstacles_vertexes) {
-    std::vector<Triangle> triangles = {};
-
     vector<tuple<int, int>> valid_arches = {};
 
     for (int i=0; i<points.size(); i++) {
@@ -86,8 +89,47 @@ std::vector<Triangle> triangulate(std::vector<Point> const& points, vector<tuple
     }
     display(arches,{});
 
-    return triangles;
+    return build_triangles_from_arches(selected_arches);
 }
+
+vector<Triangle> build_triangles_from_arches(vector<tuple<int,int>> const& arches) {
+    unordered_set<Triangle> triangles = {};
+    unordered_map<int, unordered_set<int>> neigbours = {};
+    auto insert = [&](int start, int end) {
+        if (neigbours.find(start) == neigbours.end()) {
+            neigbours[start] = {};
+        }
+        neigbours[start].insert(end);
+    };
+    for (auto a : arches) {
+        auto n1 = std::get<0>(a);
+        auto n2 = std::get<1>(a);
+        insert(n1, n2);
+        insert(n2, n1);
+    }
+
+    for (auto a : arches) {
+
+        auto n1 = std::get<0>(a);
+        auto n2 = std::get<1>(a);
+
+        auto s1 = neigbours[n1];
+        auto s2 = neigbours[n2];
+
+        auto v1 = vector(s1.begin(), s1.end());
+        auto v2 = vector(s2.begin(), s2.end());
+        std::sort(v1.begin(), v1.end());
+        std::sort(v2.begin(), v2.end());
+
+        vector<int> output = {};
+        std::set_intersection( v1.begin(), v1.end(), v2.begin(), v2.end(), std::back_inserter(output));
+
+        for (auto third: output) {
+            triangles.insert({n1, n2, third});
+        }
+    }
+    return {triangles.begin(), triangles.end()};
+};
 
 bool intersect(tuple<int, int> s1, vector<tuple<int, int>> segments, vector<Point> const& points) {
     for (auto s2: segments) {
@@ -199,4 +241,18 @@ void debug(std::vector<Triangle> triangles, vector<Point> points) {
         display_lines.push_back({c,a});
     }
     display(display_lines, display_points);
+}
+
+
+Triangle::Triangle(int a, int b, int c) {
+    // points are sorted to make sure
+    // triangles are unique
+    vector p = {a,b,c};
+    std::sort(p.begin(), p.end());
+    this->a = p[0];
+    this->b = p[1];
+    this->c = p[2];
+}
+bool Triangle::operator==(const Triangle& t) const {
+    return a == t.a && b == t.b && c == t.c;
 }

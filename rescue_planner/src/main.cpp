@@ -22,6 +22,7 @@ int main_debug(int argc, char** argv) {
 
     CombinatorialGraphBuilder builder = CombinatorialGraphBuilder();
     auto graph = builder.convert(map);
+    graph.debug();
 
     return 0;
 }

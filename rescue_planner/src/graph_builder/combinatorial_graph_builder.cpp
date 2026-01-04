@@ -61,8 +61,38 @@ Graph build_graph(Map const& map, vector<Triangle> const& triangles, vector<int>
     all_graph_points.push_back(map.robot_position.position);
     robot_position = all_graph_points.size() - 1;
 
-    Graph graph = {all_graph_points, exit_node, robot_position, victims_position};
 
+
+    Graph  graph = {all_graph_points, exit_node, robot_position, victims_position};
+
+    auto insert_vertex = [&](Point c, Point v1, Point v2, int iv1, int iv2) {
+        // avoid adding a point that goes to a wall
+        if (points_label[iv1] == points_label[iv2]) {
+            return;
+        }
+        auto p_exit = (v1 + v2) / 2.0;
+
+        int pc_index = point_to_index[c];
+        int p_exit_index = point_to_index[p_exit];
+
+        graph.add_adjacent(pc_index, p_exit_index);
+    };
+    for (auto triangle: triangles) {
+        auto ip1 = triangle.a;
+        auto ip2 = triangle.b;
+        auto ip3 = triangle.c;
+        auto p1 = points[ip1];
+        auto p2 = points[ip2];
+        auto p3 = points[ip3];
+
+        auto c = (p1 + p2 + p3) / 3.0;
+
+        insert_vertex(c, p1, p2, ip1, ip2);
+        insert_vertex(c, p2, p3, ip2, ip3);
+        insert_vertex(c, p3, p1, ip3, ip1);
+    }
+
+    return graph;
 }
 
 

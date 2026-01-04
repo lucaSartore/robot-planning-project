@@ -10,6 +10,17 @@ public:
     int b;
     /// indexes of the one of points of the 3 edges
     int c;
+    Triangle(int a, int b, int c);
+    bool operator==(const Triangle& t) const;
+};
+
+template<> struct std::hash<Triangle> {
+    std::size_t operator()(Triangle const& s) const noexcept {
+        std::size_t h1 = std::hash<int>{}(s.a);
+        std::size_t h2 = std::hash<int>{}(s.b);
+        std::size_t h3 = std::hash<int>{}(s.c);
+        return h1 ^ (h2 << 1) ^ (h3 << 2);
+    }
 };
 
 
