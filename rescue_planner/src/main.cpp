@@ -3,6 +3,7 @@
 #include "interface/interface.hpp"
 #include "graph_builder/combinatorial_graph_builder.hpp"
 #include "util/display.hpp"
+#include "trajectory_planner/trajectory_planner.hpp"
 
 
 using namespace std;
@@ -20,9 +21,20 @@ int main_debug(int argc, char** argv) {
     auto map = interface.GetMap();
     // cout << map << endl;
 
-    CombinatorialGraphBuilder builder = CombinatorialGraphBuilder();
-    auto graph = builder.convert(map);
+    // CombinatorialGraphBuilder builder = CombinatorialGraphBuilder();
+    // auto graph = builder.convert(map);
     // graph.debug();
+
+    DubinsTrajectory trajectory = DubinsTrajectory();
+    find_optimal_trajectory(
+        {{-3, 3}, -1},
+        {{3, 7}, -2},
+        {map},
+        2,
+        trajectory
+    );
+
+
 
     return 0;
 }

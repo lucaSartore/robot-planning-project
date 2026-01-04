@@ -147,6 +147,10 @@ set(SOURCES
     src/util/display.cpp
 
     src/util/hashable_tuple.hpp
+
+    src/trajectory_planner/find_optimal_trajectory.cpp
+    src/trajectory_planner/trajectory_planner.hpp
+    src/trajectory_planner/occupation_approximation.cpp
 )
 
 if(DOCKER_ROS)

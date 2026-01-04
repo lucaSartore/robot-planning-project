@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <assert.h>
+#include <math.h>
 #include "../util/hashable_tuple.hpp"
 
 vector<int> sort_indexes_by_distance(std::vector<Point> points, Point center, std::vector<int> to_exclude);
@@ -186,7 +187,7 @@ vector<tuple<int,int>> flip_arches(vector<tuple<int,int>> selected_arches, vecto
             float angle_a = measure_angle(a,c,d,points);
             float angle_b = measure_angle(b,c,d,points);
 
-            if (angle_a + angle_b > 3.1415926) {
+            if (angle_a + angle_b > M_PI) {
                 // necessary condition for flip!
                 selected_arches_set.erase(arch);
                 selected_arches_set.insert(flip_with);
