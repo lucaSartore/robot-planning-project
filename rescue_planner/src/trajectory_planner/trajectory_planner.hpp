@@ -20,14 +20,16 @@ public:
     float total_length;
     DubinsTrajectory(DubinsTrajectoryKind kind, float t1, float t2, float t3);
     DubinsTrajectory();
+    void scale(float lambda);
 };
 
 class DubinsTrajectoryRaw {
 public:
-    vector<Point> trajectory;
+    vector<Pose> trajectory;
     float duration;
-    explicit DubinsTrajectoryRaw(vector<Point> trajectory, float duration);
+    explicit DubinsTrajectoryRaw(vector<Pose> trajectory, float duration);
     DubinsTrajectoryRaw(DubinsTrajectory trajectory, Pose start, float k, float v, int resolution = 100);
+    void debug();
 };
 
 class OccupationApproximation {

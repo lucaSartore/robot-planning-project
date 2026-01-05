@@ -25,16 +25,26 @@ int main_debug(int argc, char** argv) {
     // auto graph = builder.convert(map);
     // graph.debug();
 
+    Pose start = {{-3, 3}, -1};
+    Pose end = {{3, 7}, -2};
+    float kmax = 2;
+    float vmax = 1;
     DubinsTrajectory trajectory = DubinsTrajectory();
     find_optimal_trajectory(
-        {{-3, 3}, -1},
-        {{3, 7}, -2},
+        start,
+        end,
         {map},
-        2,
+        kmax,
         trajectory
     );
-
-
+    DubinsTrajectoryRaw trajectory_raw = DubinsTrajectoryRaw(
+        trajectory,
+        start,
+        kmax,
+        vmax,
+        100
+    );
+    trajectory_raw.debug();
 
     return 0;
 }
