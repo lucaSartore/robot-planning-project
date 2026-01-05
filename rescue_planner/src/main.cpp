@@ -30,15 +30,17 @@ int main_debug(int argc, char** argv) {
     float kmax = 2;
     float vmax = 1;
     ExecutableDubinsTrajectory trajectory = ExecutableDubinsTrajectory();
-    find_optimal_trajectory(
-        start,
-        end,
-        {map, 100, 0.5},
-        kmax,
-        trajectory,
-        vmax
-    );
-    trajectory.debug();
+    OccupationApproximation occupation = {map, 1000, 0.5};
+
+    // find_optimal_trajectory(
+    //     start,
+    //     end,
+    //     {map, 1000, 0.5},
+    //     kmax,
+    //     trajectory,
+    //     vmax
+    // );
+    // trajectory.debug();
 
     return 0;
 }

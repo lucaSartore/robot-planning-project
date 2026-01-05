@@ -4,6 +4,7 @@
 #include <tuple>
 #include "trajectory_planner.hpp"
 #include "../interface/interface.hpp"
+#include "../util/display.hpp"
 
 // OccupationApproximation is a class that memorize the points on a map that are "occupated"
 // (i.e.) the robot can't be in it by discretizing the space and creating a boolean map
@@ -225,4 +226,29 @@ OccupationApproximation::OccupationApproximation(Map const &map, int resolution_
 bool OccupationApproximation::is_available(Point point) const {
     return !this->get(point);
 }
+
+void OccupationApproximation::debug(int scaling) {
+    vector<Point> pts;
+    for (int x=0; x<this->resolution_x; x+=scaling) {
+        for (int y=0; y<this->resolution_y; y+=scaling) {
+            Point p = inverse(x,y);
+            if (!is_available(p)) pts.push_back(p);
+        }
+    }
+    display({},pts);
+}
+
+Point OccupationApproximation::inverse(int ix, int iy) const {
+    // convert grid indices back to world coordinates
+    if (resolution_x <= 1 || resolution_y <= 1) return Point(x_min, y_min);
+
+    float fx = static_cast<float>(ix) / static_cast<float>(resolution_x - 1);
+    float fy = static_cast<float>(iy) / static_cast<float>(resolution_y - 1);
+
+    float x = x_min + fx * (x_max - x_min);
+    float y = y_min + fy * (y_max - y_min);
+
+    return Point(x, y);
+}
+
 

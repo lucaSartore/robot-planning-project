@@ -82,8 +82,11 @@ public:
 
     bool is_available(Point point) const;
 
+    void debug(int scaling=10);
+
 private:
     std::tuple<int, int> get_indexes(float x, float y) const;
+    Point inverse(int x, int y) const;
 
     void draw_line(Point start, Point end);
     void draw_circle(Point center, float radius);
