@@ -39,8 +39,8 @@ public:
         }
 
         side_true = true;
-        side_true = (*this)(side_true_point);
         this->margin = 0;
+        side_true = (*this)(side_true_point);
         this->margin = side_true? margin: -margin;
     }
 
@@ -98,7 +98,7 @@ std::vector<Triangle> triangulate(std::vector<Point> const& points, vector<tuple
             points[std::get<1>(a)]
         });
     }
-    display(arches,{});
+    // display(arches,{});
 
     return build_triangles_from_arches(selected_arches);
 }
