@@ -19,7 +19,7 @@ Pose inverse_transfoformation(Pose p, float phi, float lambda, float x_ref, floa
 
 
 
-bool find_optimal_trajectory(Pose start, Pose end, OccupationApproximation const& occupation, float kmax, ExecutableDubinsTrajectory& output, int collision_resolution) {
+bool find_optimal_trajectory(Pose start, Pose end, OccupationApproximation const& occupation, float kmax, ExecutableDubinsTrajectory& output, float velocity, int collision_resolution) {
     float dx = end.position.x - start.position.x;
     float dy = end.position.y - start.position.y;
     float phi = atan2(dy,dx);
@@ -28,11 +28,9 @@ bool find_optimal_trajectory(Pose start, Pose end, OccupationApproximation const
     float y_ref = -start.position.x * sin(phi) + start.position.y * cos(phi);
 
     float new_k_max = lambda * kmax;
-    cout << new_k_max << endl;
 
     auto transformed_start =  direct_transformation(start, phi, lambda, x_ref, y_ref);
     auto transformed_end = direct_transformation(end, phi, lambda, x_ref, y_ref);
-    cout << transformed_start << transformed_end << endl;
 
     vector<DubinsTrajectoryKind> options = { LSL, RSR, LSR, RSL, RLR, LRL };
     vector<DubinsTrajectory> trajectories;
@@ -52,13 +50,23 @@ bool find_optimal_trajectory(Pose start, Pose end, OccupationApproximation const
     });
 
     for (auto t: trajectories) {
-        auto collision_check_trajectory = ExecutableDubinsTrajectory(t, start, kmax, 1);
-        collision_check_trajectory.debug();
+        auto final_trajectory = ExecutableDubinsTrajectory(t, start, kmax, velocity);
+        auto points_to_check = final_trajectory.get_trajectory(collision_resolution);
+        bool occupied = false;
+        for (auto p: points_to_check) {
+            if (!occupation.is_available(p.position)) {
+                occupied = true;
+                break;
+            }
+        }
+
+        if (!occupied) {
+            output = final_trajectory;
+            return true;
+        }
     }
 
-    // DubinsTrajectoryRaw(output, start, kmax, 1, 100).debug();
-
-    return true;
+    return false;
 }
 
 float mod2pi(float x) {

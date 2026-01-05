@@ -10,7 +10,7 @@ OccupationApproximation::OccupationApproximation(Map const &map, int resolution)
     this->ocupations = {};
 }
 
-bool OccupationApproximation::is_available(Point point) {
+bool OccupationApproximation::is_available(Point point) const {
     return true;
 }
 

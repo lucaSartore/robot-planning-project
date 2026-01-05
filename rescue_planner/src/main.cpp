@@ -35,16 +35,10 @@ int main_debug(int argc, char** argv) {
         end,
         {map},
         kmax,
-        trajectory
+        trajectory,
+        vmax
     );
-    // DubinsTrajectoryRaw trajectory_raw = DubinsTrajectoryRaw(
-    //     trajectory,
-    //     start,
-    //     kmax,
-    //     vmax,
-    //     100
-    // );
-    // trajectory_raw.debug();
+    trajectory.debug();
 
     return 0;
 }

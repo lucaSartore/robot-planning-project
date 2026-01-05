@@ -75,7 +75,7 @@ class OccupationApproximation {
     vector<vector<bool>> ocupations;
 public:
     OccupationApproximation(Map const& map, int resolution=1000);
-    bool is_available(Point point);
+    bool is_available(Point point) const;
 };
 
-bool find_optimal_trajectory(Pose start, Pose end, OccupationApproximation const& occupation, float kmax, ExecutableDubinsTrajectory& output, int collision_resolution= 5);
+bool find_optimal_trajectory(Pose start, Pose end, OccupationApproximation const& occupation, float kmax, ExecutableDubinsTrajectory& output, float velocity, int collision_resolution= 5);
