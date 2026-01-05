@@ -113,7 +113,11 @@ void OccupationApproximation::draw_circle(Point center, float radius) {
         for (int j = ymin; j <= ymax; ++j) {
             int dx = i - cx;
             int dy = j - cy;
-            if (dx*dx + dy*dy <= r2) this->ocupations[i][j] = true;
+            float distance = sqrt(dx*dx + dy*dy);
+            // just drawing the contorners make dilation faster
+            if (distance <= rpx && distance >= rpx - 2) {
+                this->ocupations[i][j] = true;
+            }
         }
     }
 }
