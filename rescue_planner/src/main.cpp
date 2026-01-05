@@ -4,6 +4,8 @@
 #include "graph_builder/combinatorial_graph_builder.hpp"
 #include "util/display.hpp"
 #include "trajectory_planner/trajectory_planner.hpp"
+#include "dubins_graph/dubins_graph.hpp"
+#include "util/constants.hpp"
 
 
 using namespace std;
@@ -21,27 +23,24 @@ int main_debug(int argc, char** argv) {
     auto map = interface.GetMap();
     // cout << map << endl;
 
-    // CombinatorialGraphBuilder builder = CombinatorialGraphBuilder();
-    // auto graph = builder.convert(map);
-    // graph.debug();
+    CombinatorialGraphBuilder builder = CombinatorialGraphBuilder();
+    auto graph = builder.convert(map);
+    graph.debug();
+    graph.add_skip_ahead_connections();
+    graph.add_skip_ahead_connections();
+    graph.debug();
 
-    Pose start = {{-3, 3}, -1};
-    Pose end = {{3, 7}, -2};
-    float kmax = 2;
-    float vmax = 1;
     ExecutableDubinsTrajectory trajectory = ExecutableDubinsTrajectory();
     OccupationApproximation occupation = {map, 1000, 0.5};
-    // occupation.debug();
+    //occupation.debug()
 
-    find_optimal_trajectory(
-        start,
-        end,
-        {map, 1000, 0.5},
-        kmax,
-        trajectory,
-        vmax
+    auto dubins_graph = DubinsGraph(
+        map,
+        occupation,
+        graph,
+        VELOCITY,
+        ROBOT_K
     );
-    trajectory.debug();
 
     return 0;
 }

@@ -30,7 +30,7 @@ Graph CombinatorialGraphBuilder::convert(Map map) {
             grouped_points[std::get<1>(a)]
         });
     }
-    display(lines, points);
+    // display(lines, points);
 
     return graph;
 }

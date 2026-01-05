@@ -1,6 +1,8 @@
 #include "graph_builder.hpp"
 #include "../util/display.hpp"
 #include <unordered_set>
+#include <algorithm>
+#include <set>
 
 Node::Node(Point value) : value(value) {}
 Node::Node() : value(Point(0,0)) {}
@@ -58,4 +60,32 @@ std::ostream &operator<<(std::ostream &os, Graph &g) {
         os << "  Index " << i << ": " << g.nodes[i] << "\n";
     }
     return os;
+}
+
+
+void Graph::add_skip_ahead_connections() {
+    unordered_map<int, vector<int>> nodes_to_add;
+    for (auto i: this->nodes) {
+        int id = i.first;
+        auto node = i.second;
+        vector<int> to_add;
+        for (int adj: node.adjacent ) {
+            Node* adj_node = &nodes[adj];
+            for (int adj2: adj_node->adjacent) {
+                to_add.push_back(adj2);
+            }
+        }
+        nodes_to_add[id] = to_add;
+    }
+    for (auto &i: this->nodes) {
+        int id = i.first;
+        Node node = i.second;
+        auto to_add = nodes_to_add[id];
+        for (int adj: node.adjacent) {
+            to_add.push_back(adj);
+        }
+        auto to_add_unique = unordered_set(to_add.begin(), to_add.end());
+        to_add_unique.erase(id);
+        i.second.adjacent = vector(to_add_unique.begin(), to_add_unique.end());
+    }
 }

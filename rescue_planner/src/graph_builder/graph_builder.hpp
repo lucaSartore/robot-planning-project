@@ -25,6 +25,8 @@ public:
     friend std::ostream &operator<<(std::ostream &os, Graph &g);
     void debug();
     tuple<vector<tuple<Point, Point>>, vector<Point>> get_debug_data();
+    // add one extra node to the next node's next node
+    void add_skip_ahead_connections();
 };
 
 class GraphBuilder {
