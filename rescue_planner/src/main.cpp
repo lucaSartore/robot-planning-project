@@ -33,7 +33,7 @@ int main_debug(int argc, char** argv) {
     find_optimal_trajectory(
         start,
         end,
-        {map},
+        {map, 100, 0.5},
         kmax,
         trajectory,
         vmax

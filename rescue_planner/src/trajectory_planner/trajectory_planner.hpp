@@ -69,13 +69,37 @@ public:
     void debug(int resolution = 10);
 };
 
+
 class OccupationApproximation {
-    float x_min, x_max, y_min, y_max;
-    int resolution;
-    vector<vector<bool>> ocupations;
 public:
-    OccupationApproximation(Map const& map, int resolution=1000);
+    OccupationApproximation(Map const &map, int resolution_x, float radius, float margins = 0.25f);
+
+    bool get(float x, float y) const;
+    bool get(Point point) const;
+
+    void set(float x, float y, bool value);
+    void set(Point point, bool value);
+
     bool is_available(Point point) const;
+
+private:
+    std::tuple<int, int> get_indexes(float x, float y) const;
+
+    void draw_line(Point start, Point end);
+    void draw_circle(Point center, float radius);
+    void draw_map(Map const& map);
+
+    static std::vector<std::vector<bool>> get_kernel(int radius);
+    static std::vector<std::vector<bool>> dilation(const std::vector<std::vector<bool>>& source,
+                                                   const std::vector<std::vector<bool>>& kernel);
+
+    std::vector<std::vector<bool>> ocupations;
+
+    float x_min, x_max;
+    float y_min, y_max;
+
+    int resolution_x;
+    int resolution_y;
 };
 
 bool find_optimal_trajectory(Pose start, Pose end, OccupationApproximation const& occupation, float kmax, ExecutableDubinsTrajectory& output, float velocity, int collision_resolution= 5);
