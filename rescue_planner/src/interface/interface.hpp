@@ -12,6 +12,7 @@ public:
     float y;
 
     Point(float x = 0.0f, float y = 0.0f);
+    static Point FromPolar(float angle, float radius);
     friend ostream& operator<<(ostream& os, const Point& p);
     bool operator ==(const Point point) const;
     void operator +=(const Point point);

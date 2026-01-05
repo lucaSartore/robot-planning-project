@@ -1,5 +1,8 @@
 #include "interface.hpp"
+
+#include <complex>
 #include <exception>
+#include <math.h>
 
 Map Interface::GetMap() {
     throw std::logic_error("GetMap(): not implemented");
@@ -7,6 +10,13 @@ Map Interface::GetMap() {
 void Interface::OutputTrajectory(vector<Point> trajectory) {};
 
 Point::Point(float x, float y) : x(x), y(y) {}
+
+Point Point::FromPolar(float angle, float radius) {
+    float x = cos(angle) * radius;
+    float y = sin(angle) * radius;
+    return {x, y};
+}
+
 
 bool Point::operator ==(const Point point) const {
     return x == point.x && y == point.y;

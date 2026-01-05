@@ -25,7 +25,8 @@ public:
 class DubinsTrajectoryRaw {
 public:
     vector<Point> trajectory;
-    explicit DubinsTrajectoryRaw(vector<Point> trajectory);
+    float duration;
+    explicit DubinsTrajectoryRaw(vector<Point> trajectory, float duration);
     DubinsTrajectoryRaw(DubinsTrajectory trajectory, Pose start, float k, float v, int resolution = 100);
 };
 

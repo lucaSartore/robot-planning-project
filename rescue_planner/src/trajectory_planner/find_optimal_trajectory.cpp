@@ -1,7 +1,10 @@
+#include <assert.h>
+
 #include "trajectory_planner.hpp"
 #include "math.h"
 
 #include <iostream>
+#include <memory>
 
 Pose direct_transformation(Pose p, float phi, float lambda, float x_ref, float y_ref);
 
@@ -66,11 +69,160 @@ DubinsTrajectory::DubinsTrajectory() {
     this->total_length = 0;
 }
 
-DubinsTrajectoryRaw::DubinsTrajectoryRaw(vector<Point> trajectory) {
+DubinsTrajectoryRaw::DubinsTrajectoryRaw(vector<Point> trajectory, float duration) {
     this->trajectory = trajectory;
+    this->duration = duration;
 }
 
+enum SingleTrajectoryKind {
+    R,
+    L,
+    S
+};
+
+SingleTrajectoryKind slice_trajectory(DubinsTrajectoryKind t, int index) {
+    assert(index >= 0);
+    assert(index <= 2);
+    tuple<SingleTrajectoryKind, SingleTrajectoryKind, SingleTrajectoryKind> result;
+    switch (t) {
+        case LSL:
+            result = {L,S,L};
+            break;
+        case RSR:
+            result = {R,S,R};
+            break;
+        case LSR:
+            result = {L,S,R};
+            break;
+        case RSL:
+            result = {R,S,L};
+            break;
+        case RLR:
+            result = {R,L,R};
+            break;
+        case LRL:
+            result = {L,R,L};
+            break;
+        default:
+            assert(false);
+    }
+    switch (index) {
+        case 0:
+            return std::get<0>(result);
+        case 1:
+            return std::get<1>(result);
+        case 2:
+            return std::get<2>(result);
+        default:
+            assert(false);
+    }
+}
+
+
+
+class Trajectory {
+public:
+    virtual Point operator()(float time) const {
+        throw logic_error("not implemented");
+    }
+};
+
+class RotatingTrajectory: public Trajectory {
+public:
+    Point center;
+    float radius;
+    float omega;
+    float phi;
+    virtual Point operator()(float time) const{
+        return center + Point::FromPolar(
+            phi + time * omega,
+            radius
+        );
+    }
+    RotatingTrajectory(Point center, float radius, float omega, float phi) {
+        this->center = center;
+        this->radius = radius;
+        this->omega = omega;
+        this->phi = phi;
+    }
+    static RotatingTrajectory LTrajectory(Pose initial_pose, float radius, float speed) {
+        Point center = initial_pose.position + Point::FromPolar(initial_pose.orientation + M_PI/2, radius);
+        float phi = atan2(initial_pose.position.y - center.y, initial_pose.position.x - center.x);
+        float omega = speed / (M_PI * radius);
+        return RotatingTrajectory(center, radius, omega, phi);
+    }
+    static RotatingTrajectory RTrajectory(Pose initial_pose, float radius, float speed) {
+        Point center = initial_pose.position + Point::FromPolar(initial_pose.orientation - M_PI/2, radius);
+        float phi = atan2(initial_pose.position.y - center.y, initial_pose.position.x - center.x);
+        float omega = - speed / (M_PI * radius);
+        return RotatingTrajectory(center, radius, omega, phi);
+    }
+};
+
+class StraightTrajectory: public Trajectory {
+public:
+    Pose initial_pose;
+    float speed;
+    virtual Point operator()(float time) const {
+        return initial_pose.position + Point::FromPolar(initial_pose.orientation, speed * time);
+    }
+    StraightTrajectory(Pose initial_pose, float speed) {
+        this->initial_pose = initial_pose;
+        this->speed = speed;
+    }
+};
+
+unique_ptr<Trajectory> build_trajectory(SingleTrajectoryKind trajectory_kind, float k, float v, Pose start) {
+    switch (trajectory_kind) {
+        case L:
+            return std::make_unique<RotatingTrajectory>(RotatingTrajectory::LTrajectory(start, k, v));
+        case R:
+            return std::make_unique<RotatingTrajectory>(RotatingTrajectory::RTrajectory(start, k, v));
+        case S:
+            return std::make_unique<StraightTrajectory>(StraightTrajectory(start, v));
+        default:
+            assert(false);
+    }
+}
 DubinsTrajectoryRaw::DubinsTrajectoryRaw(DubinsTrajectory trajectory, Pose start, float k, float v, int resolution) {
+    // we remove one element to keep it as the "start" of the sequence
+    resolution -= 1;
+    int c1 = round(resolution * trajectory.t1 / trajectory.total_length);
+    int c2 = round(resolution * trajectory.t2 / trajectory.total_length);
+    int c3 = resolution - c1 - c2;
     this->trajectory = {};
+    this->trajectory.reserve(resolution);
+    this->trajectory.push_back(start.position);
+
+    auto kind_t1 = slice_trajectory(trajectory.kind, 0);
+    auto kind_t2 = slice_trajectory(trajectory.kind, 1);
+    auto kind_t3 = slice_trajectory(trajectory.kind, 2);
+    Point end_1, end_2;
+    unique_ptr<Trajectory> t1, t2, t3;
+
+    auto process_trajectory = [&](unique_ptr<Trajectory> & t, int steps, float start_time, float duration) {
+        for (int i=1; i<=steps; i++) {
+            float time = i * duration / steps + start_time;
+            this->trajectory.push_back(
+                (*t)(time)
+            );
+        }
+    };
+
+    // fist trajectory
+    t1 = build_trajectory(kind_t1, k, v, start);
+    process_trajectory(t1, c1, 0, trajectory.t1);
+    end_1 = this->trajectory.back();
+
+    // second trajectory
+    t2 = build_trajectory(kind_t2, k, v, end_1);
+    process_trajectory(t2, c2, trajectory.t1, trajectory.t2);
+    end_2 = this->trajectory.back();
+
+    // third trajectory
+    t2 = build_trajectory(kind_t3, k, v, end_2);
+    process_trajectory(t3, c3, trajectory.t1 + trajectory.t2, trajectory.t3);
+
+    this ->duration = trajectory.total_length;
 }
 
