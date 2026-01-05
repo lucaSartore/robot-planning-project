@@ -148,9 +148,15 @@ set(SOURCES
 
     src/util/hashable_tuple.hpp
 
+    src/util/constants.hpp
+
     src/trajectory_planner/find_optimal_trajectory.cpp
     src/trajectory_planner/trajectory_planner.hpp
     src/trajectory_planner/occupation_approximation.cpp
+
+    src/dubins_graph/dubins_graph.cpp
+    src/dubins_graph/dubins_graph.hpp
+
 )
 
 if(DOCKER_ROS)
