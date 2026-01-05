@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <assert.h>
 #include "trajectory_planner.hpp"
 #include "math.h"
@@ -7,11 +8,18 @@
 
 Pose direct_transformation(Pose p, float phi, float lambda, float x_ref, float y_ref);
 DubinsTrajectory solve_lsl(float theta_start, float theta_end, float k);
+DubinsTrajectory solve_rsr(float theta_start, float theta_end, float k);
+DubinsTrajectory solve_lsr(float theta_start, float theta_end, float k);
+DubinsTrajectory solve_rsl(float theta_start, float theta_end, float k);
+DubinsTrajectory solve_lrl(float theta_start, float theta_end, float k);
+DubinsTrajectory solve_rlr(float theta_start, float theta_end, float k);
+DubinsTrajectory solve(DubinsTrajectoryKind kind, float theta_start, float theta_end, float k);
+
 Pose inverse_transfoformation(Pose p, float phi, float lambda, float x_ref, float y_ref);
 
 
 
-bool find_optimal_trajectory(Pose start, Pose end, OccupationApproximation const& occupation, float kmax, DubinsTrajectory& output) {
+bool find_optimal_trajectory(Pose start, Pose end, OccupationApproximation const& occupation, float kmax, ExecutableDubinsTrajectory& output, int collision_resolution) {
     float dx = end.position.x - start.position.x;
     float dy = end.position.y - start.position.y;
     float phi = atan2(dy,dx);
@@ -26,10 +34,29 @@ bool find_optimal_trajectory(Pose start, Pose end, OccupationApproximation const
     auto transformed_end = direct_transformation(end, phi, lambda, x_ref, y_ref);
     cout << transformed_start << transformed_end << endl;
 
-    output = solve_lsl(transformed_start.orientation, transformed_end.orientation, new_k_max);
+    vector<DubinsTrajectoryKind> options = { LSL, RSR, LSR, RSL, RLR, LRL };
+    vector<DubinsTrajectory> trajectories;
 
-    // DubinsTrajectoryRaw(output, transformed_start, new_k_max, 1, 100).debug();
-    output.scale(lambda);
+    for (auto option: options) {
+        auto t = solve(option, transformed_start.orientation, transformed_end.orientation, new_k_max);
+        if (isnan(t.total_length)) {
+            continue;
+        }
+        t.scale(lambda);
+        trajectories.push_back(t);
+    }
+
+    // sort by shortest
+    sort(trajectories.begin(), trajectories.end(), [](auto a, auto b) {
+        return a.total_length < b.total_length;
+    });
+
+    for (auto t: trajectories) {
+        auto collision_check_trajectory = ExecutableDubinsTrajectory(t, start, kmax, 1);
+        collision_check_trajectory.debug();
+    }
+
+    // DubinsTrajectoryRaw(output, start, kmax, 1, 100).debug();
 
     return true;
 }
@@ -48,6 +75,91 @@ DubinsTrajectory solve_lsl(float theta_start, float theta_end, float k) {
     float s2 = 1/k * sqrt(2 + 4*k*k - 2*cos(theta_start-theta_end) + 4*k*(sin(theta_start)-sin(theta_end)));
     float s3 = 1/k * mod2pi(theta_end - atan2(c,s));
     return {LSL, s1, s2, s3};
+}
+
+DubinsTrajectory solve(DubinsTrajectoryKind kind, float theta_start, float theta_end, float k) {
+    switch (kind) {
+        case LSL:
+            return solve_lsl(theta_start, theta_end, k);
+        case RSR:
+            return solve_rsr(theta_start, theta_end, k);
+        case LSR:
+            return solve_lsr(theta_start, theta_end, k);
+        case RSL:
+            return solve_rsl(theta_start, theta_end, k);
+        case RLR:
+            return solve_rlr(theta_start, theta_end, k);
+        case LRL:
+            return solve_lrl(theta_start,theta_end,k);
+        }
+}
+
+DubinsTrajectory solve_rsr(float theta_start, float theta_end, float k) {
+    float c = cos(theta_start) - cos(theta_end);
+    float s = 2 * k - sin(theta_start) + sin(theta_end);
+    float s1 = (1.0f / k) * mod2pi(theta_start - atan2(c, s));
+    float s2_inner = 2.0f + 4.0f * k * k
+                     - 2.0f * cos(theta_start - theta_end)
+                     - 4.0f * k * (sin(theta_start) - sin(theta_end));
+    float s2 = (1.0f / k) * sqrt(s2_inner);
+    float s3 = (1.0f / k) * mod2pi(atan2(c, s) - theta_end);
+    return {RSR, s1, s2, s3};
+}
+
+DubinsTrajectory solve_lsr(float theta_start, float theta_end, float k) {
+    float c = cos(theta_start) + cos(theta_end);
+    float s = 2 * k + sin(theta_start) + sin(theta_end);
+
+    float s2_inner = -2.0f + 4.0f * k * k
+                     + 2.0f * cos(theta_start - theta_end)
+                     + 4.0f * k * (sin(theta_start) + sin(theta_end));
+    float s2 = (1.0f / k) * sqrt(s2_inner);
+
+    float common_atan = atan2(-c, s) - atan2(-2.0f, k * s2);
+
+    float s1 = (1.0f / k) * mod2pi(common_atan - theta_start);
+    float s3 = (1.0f / k) * mod2pi(common_atan - theta_end);
+
+    return {LSR, s1, s2, s3};
+}
+
+DubinsTrajectory solve_rsl(float theta_start, float theta_end, float k) {
+    float c = cos(theta_start) + cos(theta_end);
+    float s = 2 * k - sin(theta_start) - sin(theta_end);
+
+    float s2_inner = -2.0f + 4.0f * k * k + 2.0f * cos(theta_start - theta_end) - 4.0f * k * (sin(theta_start) + sin(theta_end));
+    float s2 = (1.0f / k) * sqrt(s2_inner);
+
+    float common_atan = atan2(c, s) - atan2(2.0f, k * s2);
+    float s1 = (1.0f / k) * mod2pi(theta_start - common_atan);
+    float s3 = (1.0f / k) * mod2pi(theta_end - common_atan);
+
+    return {RSL, s1, s2, s3};
+}
+
+DubinsTrajectory solve_rlr(float theta_start, float theta_end, float k) {
+    float c = cos(theta_start) - cos(theta_end);
+    float s = 2 * k - sin(theta_start) + sin(theta_end);
+
+    float arg = 0.125f * (6.0f - 4.0f * k * k + 2.0f * cos(theta_start - theta_end) + 4.0f * k * (sin(theta_start) - sin(theta_end)));
+    float s2 = (1.0f / k) * mod2pi(2.0f * M_PI - acos(arg));
+
+    float s1 = (1.0f / k) * mod2pi(theta_start - atan2(c, s) + 0.5f * k * s2);
+    float s3 = (1.0f / k) * mod2pi(theta_start - theta_end + k * (s2 - s1));
+
+    return {RLR, s1, s2, s3};
+}
+
+DubinsTrajectory solve_lrl(float theta_start, float theta_end, float k) {
+    float c = cos(theta_end) - cos(theta_start);
+    float s = 2 * k + sin(theta_start) - sin(theta_end);
+
+    float s2 = (1.0f / k) * mod2pi(2.0f * M_PI - acos(0.125f * (6.0f - 4.0f * k * k + 2.0f * cos(theta_start - theta_end) - 4.0f * k * (sin(theta_start) - sin(theta_end)))));
+
+    float s1 = (1.0f / k) * mod2pi(-theta_start + atan2(c, s) + 0.5f * k * s2);
+    float s3 = (1.0f / k) * mod2pi(theta_end - theta_start + k * (s2 - s1));
+
+    return {LRL, s1, s2, s3};
 }
 
 Pose direct_transformation(Pose p, float phi, float lambda, float x_ref, float y_ref) {
@@ -70,7 +182,7 @@ DubinsTrajectory::DubinsTrajectory(DubinsTrajectoryKind kind, float t1, float t2
 }
 
 DubinsTrajectory::DubinsTrajectory() {
-    this->kind = DubinsTrajectoryKind::LRL;
+    this->kind = LRL;
     this->t1 = 0;
     this->t2 = 0;
     this->t3 = 0;
@@ -85,10 +197,6 @@ void DubinsTrajectory::scale(float lambda) {
 }
 
 
-DubinsTrajectoryRaw::DubinsTrajectoryRaw(vector<Pose> trajectory, float duration) {
-    this->trajectory = trajectory;
-    this->duration = duration;
-}
 
 enum SingleTrajectoryKind {
     R,
@@ -136,119 +244,121 @@ SingleTrajectoryKind slice_trajectory(DubinsTrajectoryKind t, int index) {
 
 
 
-class Trajectory {
-public:
-    virtual Pose operator()(float time) const {
-        throw logic_error("not implemented");
-    }
-};
+Pose Trajectory::operator()(float time) const {
+    throw logic_error("not implemented");
+}
 
-class RotatingTrajectory: public Trajectory {
-public:
-    Point center;
-    float radius;
-    float omega;
-    float phi;
-    virtual Pose operator()(float time) const{
+Pose RotatingTrajectory:: operator()(float time) const{
         auto position = center + Point::FromPolar(
             phi + time * omega,
             radius
         );
-        float orientation = phi + time * omega + M_PI / 2;
+        float orientation = phi + time * omega + (omega > 0? M_PI / 2 : -M_PI / 2);
         return {position, orientation};
     }
-    RotatingTrajectory(Point center, float radius, float omega, float phi) {
-        this->center = center;
-        this->radius = radius;
-        this->omega = omega;
-        this->phi = phi;
-    }
-    static RotatingTrajectory LTrajectory(Pose initial_pose, float radius, float speed) {
-        Point center = initial_pose.position + Point::FromPolar(initial_pose.orientation + M_PI/2, radius);
-        float phi = atan2(initial_pose.position.y - center.y, initial_pose.position.x - center.x);
-        float omega = speed / radius;
-        return RotatingTrajectory(center, radius, omega, phi);
-    }
-    static RotatingTrajectory RTrajectory(Pose initial_pose, float radius, float speed) {
-        Point center = initial_pose.position + Point::FromPolar(initial_pose.orientation - M_PI/2, radius);
-        float phi = atan2(initial_pose.position.y - center.y, initial_pose.position.x - center.x);
-        float omega = - speed / (M_PI * radius);
-        return RotatingTrajectory(center, radius, omega, phi);
-    }
-};
+RotatingTrajectory::RotatingTrajectory(Point center, float radius, float omega, float phi) {
+    this->center = center;
+    this->radius = radius;
+    this->omega = omega;
+    this->phi = phi;
+}
+RotatingTrajectory RotatingTrajectory::LTrajectory(Pose initial_pose, float radius, float speed) {
+    Point center = initial_pose.position + Point::FromPolar(initial_pose.orientation + M_PI/2, radius);
+    float phi = atan2(initial_pose.position.y - center.y, initial_pose.position.x - center.x);
+    float omega = speed / radius;
+    return RotatingTrajectory(center, radius, omega, phi);
+}
+RotatingTrajectory RotatingTrajectory::RTrajectory(Pose initial_pose, float radius, float speed) {
+    Point center = initial_pose.position + Point::FromPolar(initial_pose.orientation - M_PI/2, radius);
+    float phi = atan2(initial_pose.position.y - center.y, initial_pose.position.x - center.x);
+    float omega = - speed / radius;
+    return RotatingTrajectory(center, radius, omega, phi);
+}
 
-class StraightTrajectory: public Trajectory {
-public:
-    Pose initial_pose;
-    float speed;
-    virtual Pose operator()(float time) const {
-        auto position =  initial_pose.position + Point::FromPolar(initial_pose.orientation, speed * time);
-        auto orientation = initial_pose.orientation;
-        return {position, orientation};
-    }
-    StraightTrajectory(Pose initial_pose, float speed) {
-        this->initial_pose = initial_pose;
-        this->speed = speed;
-    }
-};
+Pose StraightTrajectory:: operator()(float time) const {
+    auto position =  initial_pose.position + Point::FromPolar(initial_pose.orientation, speed * time);
+    auto orientation = initial_pose.orientation;
+    return {position, orientation};
+}
+StraightTrajectory::StraightTrajectory(Pose initial_pose, float speed) {
+    this->initial_pose = initial_pose;
+    this->speed = speed;
+}
 
-unique_ptr<Trajectory> build_trajectory(SingleTrajectoryKind trajectory_kind, float k, float v, Pose start) {
+variant<RotatingTrajectory, StraightTrajectory> build_trajectory(SingleTrajectoryKind trajectory_kind, float k, float v, Pose start) {
     float radius = 1/k;
     switch (trajectory_kind) {
         case L:
-            return std::make_unique<RotatingTrajectory>(RotatingTrajectory::LTrajectory(start, radius, v));
+            return RotatingTrajectory::LTrajectory(start, radius, v);
         case R:
-            return std::make_unique<RotatingTrajectory>(RotatingTrajectory::RTrajectory(start, radius, v));
+            return RotatingTrajectory::RTrajectory(start, radius, v);
         case S:
-            return std::make_unique<StraightTrajectory>(StraightTrajectory(start, v));
+            return StraightTrajectory(start, v);
         default:
             assert(false);
     }
 }
-DubinsTrajectoryRaw::DubinsTrajectoryRaw(DubinsTrajectory trajectory, Pose start, float k, float v, int resolution) {
-    // we remove one element to keep it as the "start" of the sequence
-    resolution -= 1;
-    int c1 = round(resolution * trajectory.t1 / trajectory.total_length);
-    int c2 = round(resolution * trajectory.t2 / trajectory.total_length);
-    int c3 = resolution - c1 - c2;
-    this->trajectory = {};
-    this->trajectory.reserve(resolution);
-    this->trajectory.push_back(start.position);
 
+
+Pose execute(variant<RotatingTrajectory, StraightTrajectory> const& trajectory, float time) {
+    return std::visit([&](auto& arg) { return arg(time); }, trajectory);
+}
+
+Pose ExecutableDubinsTrajectory::operator()(float time) {
+    if (time <= this->t1) {
+        return execute(this->trajectory_1, time);
+    }
+    if (time <= this->t2) {
+        return execute(this->trajectory_2, time - this->t1);
+    }
+    return execute(this->trajectory_3, time - this->t2);
+}
+
+ExecutableDubinsTrajectory::ExecutableDubinsTrajectory(DubinsTrajectory trajectory, Pose start, float k, float v) {
     auto kind_t1 = slice_trajectory(trajectory.kind, 0);
     auto kind_t2 = slice_trajectory(trajectory.kind, 1);
     auto kind_t3 = slice_trajectory(trajectory.kind, 2);
-    Pose end_1, end_2;
-    unique_ptr<Trajectory> t1, t2, t3;
 
-    auto process_trajectory = [&](unique_ptr<Trajectory> & t, int steps, float duration) {
-        for (int i=1; i<=steps; i++) {
-            float time = i * duration / steps;
-            this->trajectory.push_back(
-                t->operator()(time)
-            );
-        }
-    };
+    this->t1 = trajectory.t1 / v;
+    this->t2 = this->t1 + trajectory.t2 / v;
 
     // fist trajectory
-    t1 = build_trajectory(kind_t1, k, v, start);
-    process_trajectory(t1, c1, trajectory.t1 / v);
-    end_1 = this->trajectory.back();
+    this->trajectory_1 = build_trajectory(kind_t1, k, v, start);
+    Pose end_1 = execute(this->trajectory_1, this->t1);
 
     // second trajectory
-    t2 = build_trajectory(kind_t2, k, v, end_1);
-    process_trajectory(t2, c2, trajectory.t2 / v);
-    end_2 = this->trajectory.back();
+    this->trajectory_2 = build_trajectory(kind_t2, k, v, end_1);
+    Pose end_2 = execute(this->trajectory_2, this->t2-this->t1);
 
     // third trajectory
-    t3 = build_trajectory(kind_t3, k, v, end_2);
-    process_trajectory(t3, c3,  trajectory.t3 /v );
+    this->trajectory_3 = build_trajectory(kind_t3, k, v, end_2);
 
-    this ->duration = trajectory.total_length;
+    this->length = trajectory.total_length;
+    this->time = length/v;
 }
 
 
-void DubinsTrajectoryRaw::debug() {
+ExecutableDubinsTrajectory::ExecutableDubinsTrajectory() {
+    this->length = 0;
+    this->time = 0;
+    this->t1 = 0;
+    this->t2 = 0;
+}
+
+vector<Pose> ExecutableDubinsTrajectory::get_trajectory(int resolution) {
+    int points = length*resolution;
+    vector<Pose> trajectory = {};
+    trajectory.reserve(points+1);
+
+    for (int i = 0; i <= points; i++) {
+        float t = static_cast<float>(i) / static_cast<float>(points) * time;
+        trajectory.push_back(this->operator()(t));
+    }
+
+    return trajectory;
+}
+void ExecutableDubinsTrajectory::debug(int resolution) {
+    auto trajectory = get_trajectory(resolution);
     vector<Point> points;
     for (auto p : trajectory) {
         points.push_back(p.position);

@@ -29,7 +29,7 @@ int main_debug(int argc, char** argv) {
     Pose end = {{3, 7}, -2};
     float kmax = 2;
     float vmax = 1;
-    DubinsTrajectory trajectory = DubinsTrajectory();
+    ExecutableDubinsTrajectory trajectory = ExecutableDubinsTrajectory();
     find_optimal_trajectory(
         start,
         end,
@@ -37,14 +37,14 @@ int main_debug(int argc, char** argv) {
         kmax,
         trajectory
     );
-    DubinsTrajectoryRaw trajectory_raw = DubinsTrajectoryRaw(
-        trajectory,
-        start,
-        kmax,
-        vmax,
-        100
-    );
-    trajectory_raw.debug();
+    // DubinsTrajectoryRaw trajectory_raw = DubinsTrajectoryRaw(
+    //     trajectory,
+    //     start,
+    //     kmax,
+    //     vmax,
+    //     100
+    // );
+    // trajectory_raw.debug();
 
     return 0;
 }

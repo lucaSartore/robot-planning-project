@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include "../interface/interface.hpp"
+#include <variant>
 
 enum DubinsTrajectoryKind {
     LSL,
@@ -9,6 +10,31 @@ enum DubinsTrajectoryKind {
     RSL,
     RLR,
     LRL
+};
+
+class Trajectory {
+public:
+    virtual Pose operator()(float time) const;
+};
+
+class RotatingTrajectory: public Trajectory {
+public:
+    Point center;
+    float radius;
+    float omega;
+    float phi;
+    virtual Pose operator()(float time) const;
+    RotatingTrajectory(Point center, float radius, float omega, float phi);
+    static RotatingTrajectory LTrajectory(Pose initial_pose, float radius, float speed);
+    static RotatingTrajectory RTrajectory(Pose initial_pose, float radius, float speed);
+};
+
+class StraightTrajectory: public Trajectory {
+public:
+    Pose initial_pose;
+    float speed;
+    virtual Pose operator()(float time) const;
+    StraightTrajectory(Pose initial_pose, float speed);
 };
 
 class DubinsTrajectory {
@@ -23,13 +49,24 @@ public:
     void scale(float lambda);
 };
 
-class DubinsTrajectoryRaw {
+class ExecutableDubinsTrajectory{
 public:
-    vector<Pose> trajectory;
-    float duration;
-    explicit DubinsTrajectoryRaw(vector<Pose> trajectory, float duration);
-    DubinsTrajectoryRaw(DubinsTrajectory trajectory, Pose start, float k, float v, int resolution = 100);
-    void debug();
+    /// transition time between first and second trajectory
+    float t1;
+    /// transition time between second and fisrt trajectory
+    float t2;
+    /// total length of the trajectory
+    float length;
+    float time;
+    variant<RotatingTrajectory,StraightTrajectory> trajectory_1 = StraightTrajectory({{0,0},0},0);
+    variant<RotatingTrajectory,StraightTrajectory> trajectory_2 = StraightTrajectory({{0,0},0},0);
+    variant<RotatingTrajectory,StraightTrajectory> trajectory_3 = StraightTrajectory({{0,0},0},0);
+
+    Pose operator()(float time);
+    explicit ExecutableDubinsTrajectory();
+    ExecutableDubinsTrajectory(DubinsTrajectory trajectory, Pose start, float k, float v);
+    vector<Pose> get_trajectory(int resolution = 10);
+    void debug(int resolution = 10);
 };
 
 class OccupationApproximation {
@@ -41,4 +78,4 @@ public:
     bool is_available(Point point);
 };
 
-bool find_optimal_trajectory(Pose start, Pose end, OccupationApproximation const& occupation, float kmax, DubinsTrajectory& output);
+bool find_optimal_trajectory(Pose start, Pose end, OccupationApproximation const& occupation, float kmax, ExecutableDubinsTrajectory& output, int collision_resolution= 5);
