@@ -21,7 +21,11 @@ int main_ros(int argc, char** argv) {
 int main_debug(int argc, char** argv) {
     DebugInterface interface = DebugInterface();
     auto map = interface.GetMap();
+    // map.robot_position = {{-1,-4},-1.5};
     // cout << map << endl;
+
+    // map.obstacles.push_back(Obstacle::CreateCylinder({3,3}, 2));
+    // display(map.get_obstacle_lines(), {});
 
     CombinatorialGraphBuilder builder = CombinatorialGraphBuilder();
     auto graph = builder.convert(map);
@@ -32,7 +36,7 @@ int main_debug(int argc, char** argv) {
 
     ExecutableDubinsTrajectory trajectory = ExecutableDubinsTrajectory();
     OccupationApproximation occupation = {map, 1000, 0.5};
-    //occupation.debug()
+    // occupation.debug();
 
     auto dubins_graph = DubinsGraph(
         map,
@@ -44,7 +48,8 @@ int main_debug(int argc, char** argv) {
 
     // auto search = GraphSearch(dubins_graph, graph.victims_odes);
     auto search = GraphSearch(dubins_graph, {});
-    search.execute();
+    auto path = search.execute();
+    search.debug(path);
 
     return 0;
 }

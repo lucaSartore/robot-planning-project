@@ -114,3 +114,34 @@ ostream& operator<<(ostream& os, const Map& m) {
     os << "------------------";
     return os;
 }
+
+vector<tuple<Point, Point> > Map::get_obstacle_lines() {
+    vector<tuple<Point, Point>> v;
+
+    auto add = [&](vector<Point> p) {
+        for (int i=0; i<p.size(); i++) {
+            int j = (i+1)%p.size();
+            v.push_back({p[i], p[j]});
+        }
+    };
+
+
+    add(borders);
+    for (auto & obstacle: obstacles) {
+        if (obstacle.kind == ObstacleKind::Polygon) {
+            add(obstacle.polygon.points);
+        } else {
+            vector<Point> circle_points = {};
+            for (int i=0; i<=16; i++) {
+                circle_points.push_back(
+                    obstacle.cylinder.center + Point::FromPolar(
+                        i * 2 * M_PI / 16, obstacle.cylinder.radius
+                    )
+                );
+            }
+            add(circle_points);
+        }
+    }
+    return v;
+}
+

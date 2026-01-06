@@ -4,6 +4,7 @@
 #include "../interface/interface.hpp"
 #include "../trajectory_planner/trajectory_planner.hpp"
 #include "../graph_builder/graph_builder.hpp"
+#include "../util/hashable_tuple.hpp"
 
 using namespace  std;
 
@@ -56,6 +57,7 @@ class GraphSearch {
 public:
     GraphSearch(DubinsGraph& graph, vector<int> victims);
     vector<ExecutableDubinsTrajectory> execute();
+    void debug(vector<ExecutableDubinsTrajectory> path);
 private:
     /// graph
     DubinsGraph & graph;
@@ -67,5 +69,5 @@ private:
     /// starting from one of the nodes in "to_visit"
     unordered_map<int, float> heuristic_costs;
     float heuristic_cost(int node_start, int next_objective);
-
+    vector<ExecutableDubinsTrajectory> build_solution(unordered_map<tuple<int, float,int>, tuple<int, float, int>, hash_triplet> & backtracking, tuple<int, float, int> end);
 };

@@ -91,6 +91,7 @@ public:
     Map() = default;
     Map(Pose e, Pose r, vector<Point> b, vector<Victim> v, vector<Obstacle> o);
     friend ostream& operator<<(ostream& os, const Map& m);
+    vector<tuple<Point, Point>> get_obstacle_lines();
 };
 
 class Interface {

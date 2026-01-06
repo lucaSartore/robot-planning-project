@@ -23,13 +23,13 @@ Graph CombinatorialGraphBuilder::convert(Map map) {
     auto debug_data = graph.get_debug_data();
     auto lines = std::get<0>(debug_data);
     // lines = {};
-    auto points = std::get<1>(debug_data);
-    for (auto a : obstacle_vertexes) {
-        lines.push_back({
-            grouped_points[std::get<0>(a)],
-            grouped_points[std::get<1>(a)]
-        });
-    }
+    // auto points = std::get<1>(debug_data);
+    // for (auto a : obstacle_vertexes) {
+    //     lines.push_back({
+    //         grouped_points[std::get<0>(a)],
+    //         grouped_points[std::get<1>(a)]
+    //     });
+    // }
     // display(lines, points);
 
     return graph;
