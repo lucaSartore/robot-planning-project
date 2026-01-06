@@ -99,7 +99,7 @@ class Interface {
 public:
     virtual ~Interface() {};
     virtual Map GetMap() = 0;
-    virtual void OutputTrajectory(vector<Point> trajectory) = 0;
+    virtual void OutputTrajectory(vector<Pose> trajectory) = 0;
 };
 
 

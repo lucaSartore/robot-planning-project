@@ -40,7 +40,7 @@ Map DebugInterface::GetMap(){
 	return m;
 }
 
-void DebugInterface::OutputTrajectory(vector<Point> trajectory) {
+void DebugInterface::OutputTrajectory(vector<Pose> trajectory) {
 	std::cout << "Trajectory output (debug):" << std::endl;
 	for (const auto& p : trajectory) std::cout << p << std::endl;
 }

@@ -200,5 +200,6 @@ Map RosInterface::GetMap(){
     return to_return;
 }
 
-void RosInterface::OutputTrajectory(vector<Point> trajectory) {
+void RosInterface::OutputTrajectory(vector<Pose> trajectory) {
+    for
 }

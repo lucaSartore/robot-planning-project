@@ -14,7 +14,7 @@ class RosInterface: public Interface {
 public:
     RosInterface();
     virtual Map GetMap();
-    virtual void OutputTrajectory(vector<Point> trajectory);
+    virtual void OutputTrajectory(vector<Pose> trajectory);
 
     // all member are static because there can be only one map at the same time
     // (due to the fact that only one topic of each kind exist)

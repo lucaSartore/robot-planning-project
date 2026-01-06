@@ -6,5 +6,5 @@
 class DebugInterface: public Interface {
 public:
     virtual Map GetMap();
-    virtual void OutputTrajectory(vector<Point> trajectory);
+    virtual void OutputTrajectory(vector<Pose> trajectory);
 };
