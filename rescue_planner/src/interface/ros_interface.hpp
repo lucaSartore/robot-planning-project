@@ -1,5 +1,4 @@
 #pragma once
-
 #include "interface.hpp"
 #include <ros/ros.h>
 #include <vector>
@@ -30,7 +29,7 @@ public:
     static bool position_done;
     static std::mutex map_ready_mutex;
     static std::mutex edit_mutex;
-    static ros::Publisher publisher;
+    static std::optional<ros::Publisher> publisher;
     static std::optional<ros::NodeHandle> node_handle;
     static std::vector<ros::Subscriber> subscribers;
     static void TryExportMap();

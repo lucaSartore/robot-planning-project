@@ -1,8 +1,12 @@
 #include "ros_interface.hpp"
+
+#include <iostream>
+
 #include "interface.hpp"
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include "geometry_msgs/Pose.h"
+#include "../util/constants.hpp"
 
 
 Map RosInterface::built_map;
@@ -15,6 +19,8 @@ bool RosInterface::exit_done;
 bool RosInterface::position_done;
 std::mutex RosInterface::map_ready_mutex;
 std::mutex RosInterface::edit_mutex;
+
+std::optional<ros::Publisher> RosInterface::publisher;
 std::optional<ros::NodeHandle> RosInterface::node_handle;
 std::vector<ros::Subscriber> RosInterface::subscribers;
 
@@ -51,6 +57,8 @@ RosInterface::RosInterface(){
     // RosInterface::edit_mutex = std::mutex();
     RosInterface::node_handle = ros::NodeHandle();
     RosInterface::subscribers = std::vector<ros::Subscriber>();
+
+    RosInterface::publisher = RosInterface::node_handle.value().advertise<loco_planning::Reference>("/limo0/ref", 1);
 
     // this is lock and will be unlocked when the map is initialized
     // for the first time
@@ -186,7 +194,7 @@ void RosInterface::TryExportMap() {
 
     RosInterface::edit_mutex.unlock();
 
-    cout << "Map build: " << RosInterface::built_map << endl;
+    // cout << "Map build: " << RosInterface::built_map << endl;
 }
 
 Map RosInterface::GetMap(){
@@ -201,5 +209,21 @@ Map RosInterface::GetMap(){
 }
 
 void RosInterface::OutputTrajectory(vector<Pose> trajectory) {
-    // for
+    for (auto p: trajectory) {
+        // float32 x_d
+        // float32 y_d
+        // float32 theta_d
+        // float32 v_d
+        // float32 omega_d
+        // bool plan_finished
+
+        cout << "publishing ref: " << p << endl;
+        auto ref = loco_planning::Reference();
+        ref.x_d =  p.position.x;
+        ref.y_d =  p.position.y;
+        ref.theta_d =  p.orientation;
+        RosInterface::publisher.value().publish(
+            ref
+        );
+    }
 }

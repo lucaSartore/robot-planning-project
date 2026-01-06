@@ -16,8 +16,14 @@ using namespace std;
 
 #ifdef DOCKER_ROS
 int main_ros(int argc, char** argv) {
+    cout << "start" << endl;
     ros::init(argc, argv, "planner");
     RosInterface interface = RosInterface();
+    while (true) {
+        cout << "loop << endl;
+        ros::spinOnce();
+        interface.OutputTrajectory({{{2,2},0}});
+    }
     ros::spin();
     return 0;
 }
