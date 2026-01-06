@@ -1,5 +1,4 @@
 #include "interface.hpp"
-
 #include <complex>
 #include <exception>
 #include <math.h>
@@ -7,7 +6,13 @@
 Map Interface::GetMap() {
     throw std::logic_error("GetMap(): not implemented");
 };
-void Interface::OutputTrajectory(vector<Point> trajectory) {};
+void Interface::OutputTrajectory(vector<Pose> trajectory) {};
+
+
+Point::Point() {
+    x = 0;
+    y = 0;
+}
 
 Point::Point(float x, float y) : x(x), y(y) {}
 
@@ -121,7 +126,7 @@ vector<tuple<Point, Point> > Map::get_obstacle_lines() {
     auto add = [&](vector<Point> p) {
         for (int i=0; i<p.size(); i++) {
             int j = (i+1)%p.size();
-            v.push_back({p[i], p[j]});
+            v.emplace_back(p[i], p[j]);
         }
     };
 
@@ -154,9 +159,9 @@ vector<tuple<Point, Point> > Map::get_victims_lines() {
         auto a = v.position + Point::FromPolar(M_PI/2, 0.3);
         auto b = v.position + Point::FromPolar(-M_PI/6, 0.3);
         auto c = v.position + Point::FromPolar(M_PI*7/6, 0.3);
-        to_return.push_back({a, b});
-        to_return.push_back({b, c});
-        to_return.push_back({c, a});
+        to_return.emplace_back(a, b);
+        to_return.emplace_back(b, c);
+        to_return.emplace_back(c, a);
     }
     return to_return;
 }

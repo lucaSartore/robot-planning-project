@@ -3,6 +3,7 @@
 #include <vector>
 #include <ostream>
 #include <optional>
+#include <tuple>
 
 using namespace std;
 
@@ -11,7 +12,8 @@ public:
     float x;
     float y;
 
-    Point(float x = 0.0f, float y = 0.0f);
+    Point();
+    Point(float x, float y);
     static Point FromPolar(float angle, float radius);
     friend ostream& operator<<(ostream& os, const Point& p);
     bool operator ==(const Point point) const;

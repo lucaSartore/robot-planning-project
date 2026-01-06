@@ -8,6 +8,10 @@
 #include "util/constants.hpp"
 
 
+#ifdef DOCKER_ROS
+#include <ros/ros.h>
+#include "interface/ros_interface.hpp"
+#endif
 using namespace std;
 
 #ifdef DOCKER_ROS
@@ -32,6 +36,8 @@ int main_debug(int argc, char** argv) {
     // graph.debug();
     graph.add_skip_ahead_connections();
     graph.add_skip_ahead_connections();
+    // graph.add_skip_ahead_connections();
+    // graph.add_skip_ahead_connections();
     // graph.debug();
 
     ExecutableDubinsTrajectory trajectory = ExecutableDubinsTrajectory();
@@ -53,7 +59,7 @@ int main_debug(int argc, char** argv) {
     // auto search = GraphSearch(dubins_graph, {});
     auto search = RescueOrderSearch(dubins_graph);
     search.execute();
-    auto best = search.get_best_solution(80);
+    auto best = search.get_best_solution(50);
     search.debug(best);
 
     return 0;

@@ -92,7 +92,6 @@ void RescueOrderSearch::execute() {
     };
 
     std::for_each(
-        execution::par_unseq,
         permutations.begin(),
         permutations.end(),
         worker

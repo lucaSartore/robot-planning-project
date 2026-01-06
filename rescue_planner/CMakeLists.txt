@@ -1,5 +1,6 @@
 
-option(DOCKER_ROS "Compile for ros or for debug" OFF)
+option(DOCKER_ROS "Compile for ros or for debug" ON)
+#option(DOCKER_ROS "Compile for ros or for debug" OFF)
 
 if(DOCKER_ROS)
     cmake_minimum_required(VERSION 3.0.2)
