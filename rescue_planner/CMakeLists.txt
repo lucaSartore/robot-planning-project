@@ -156,6 +156,7 @@ set(SOURCES
 
     src/dubins_graph/dubins_graph.cpp
     src/dubins_graph/dubins_graph.hpp
+    src/dubins_graph/graph_search.cpp
 
 )
 
