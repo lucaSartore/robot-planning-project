@@ -23,7 +23,7 @@ DubinsNode::DubinsNode() {
 
 
 void DubinsNode::add_connection(float angle, DubinsEdge edge) {
-    if (this->connections.find(angle) != this->connections.end()) {
+    if (this->connections.find(angle) == this->connections.end()) {
         this->connections[angle] = {};
     }
     this->connections[angle].push_back(edge);
@@ -101,7 +101,7 @@ void DubinsGraph::generate_edge(int node_from, int node_to, float starting_angle
 
     if (success) {
         this->nodes[node_from].add_connection(starting_angle, {
-            &(this->nodes[node_from]),
+            &(this->nodes[node_to]),
             ending_angle,
             output
         });

@@ -50,3 +50,22 @@ private:
     void generate_edge(int node_from, int node_to, float starting_angle, float ending_angle);
 
 };
+
+
+class GraphSearch {
+public:
+    GraphSearch(DubinsGraph& graph, vector<int> victims);
+    vector<ExecutableDubinsTrajectory> execute();
+private:
+    /// graph
+    DubinsGraph & graph;
+    /// initial node
+    DubinsNode * start;
+    /// list of nodes to visit (victims and finally exit)
+    vector<DubinsNode *> to_visit;
+    /// costs associated with reaching the end
+    /// starting from one of the nodes in "to_visit"
+    unordered_map<int, float> heuristic_costs;
+    float heuristic_cost(int node_start, int next_objective);
+
+};

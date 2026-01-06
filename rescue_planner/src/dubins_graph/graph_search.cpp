@@ -9,23 +9,6 @@
 #include "../triangulation/triangulation.hpp"
 #include "../util/hashable_tuple.hpp"
 
-class GraphSearch {
-public:
-    GraphSearch(DubinsGraph& graph, vector<int> victims);
-    vector<ExecutableDubinsTrajectory> execute();
-private:
-    /// graph
-    DubinsGraph & graph;
-    /// initial node
-    DubinsNode * start;
-    /// list of nodes to visit (victims and finally exit)
-    vector<DubinsNode *> to_visit;
-    /// costs associated with reaching the end
-    /// starting from one of the nodes in "to_visit"
-    unordered_map<int, float> heuristic_costs;
-    float heuristic_cost(int node_start, int next_objective);
-
-};
 
 
 /// class used in the priority queue
@@ -81,7 +64,9 @@ GraphSearch::GraphSearch(DubinsGraph &graph, vector<int> victims): graph(graph) 
 
 
 vector<ExecutableDubinsTrajectory> GraphSearch::execute() {
-    unordered_set<tuple<int, float>, hash_duplet> visited;
+    // set of nodes visited containing:
+    // <node_id, angle, next_objectove>
+    unordered_set<tuple<int, float, int>, hash_triplet> visited;
 
     vector<int> objectives = {};
     objectives.reserve(to_visit.size());
@@ -108,14 +93,14 @@ vector<ExecutableDubinsTrajectory> GraphSearch::execute() {
                 to_expand.objectives.begin(),
                 to_expand.objectives.end(),
                 to_expand.node->id
-            ) == to_expand.objectives.end();
+            ) != to_expand.objectives.end();
             // we want to force the correct order
             if (is_other_objective) {
                 continue;
             }
         }
 
-        tuple<int, float> node_identifier = {to_expand.node->id, to_expand.angle};
+        tuple<int, float, int> node_identifier = {to_expand.node->id, to_expand.angle, to_expand.objectives[0]};
 
         // node already visited... don't do anything
         if (visited.find(node_identifier) != visited.end()) {
@@ -131,7 +116,7 @@ vector<ExecutableDubinsTrajectory> GraphSearch::execute() {
         }
 
         // solution found!
-        if (!new_objectives.empty()) {
+        if (new_objectives.empty()) {
             std::cout << "found solution with final cost: " << to_expand.length_so_far << std::endl;
             break;
         }
@@ -147,4 +132,6 @@ vector<ExecutableDubinsTrajectory> GraphSearch::execute() {
             ));
         }
     }
+
+    return {};
 }

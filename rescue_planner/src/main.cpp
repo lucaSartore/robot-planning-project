@@ -25,10 +25,10 @@ int main_debug(int argc, char** argv) {
 
     CombinatorialGraphBuilder builder = CombinatorialGraphBuilder();
     auto graph = builder.convert(map);
-    graph.debug();
-    graph.add_skip_ahead_connections();
-    graph.add_skip_ahead_connections();
-    graph.debug();
+    // graph.debug();
+    // graph.add_skip_ahead_connections();
+    // graph.add_skip_ahead_connections();
+    // graph.debug();
 
     ExecutableDubinsTrajectory trajectory = ExecutableDubinsTrajectory();
     OccupationApproximation occupation = {map, 1000, 0.5};
@@ -41,6 +41,10 @@ int main_debug(int argc, char** argv) {
         VELOCITY,
         ROBOT_K
     );
+
+    // auto search = GraphSearch(dubins_graph, graph.victims_odes);
+    auto search = GraphSearch(dubins_graph, {});
+    search.execute();
 
     return 0;
 }

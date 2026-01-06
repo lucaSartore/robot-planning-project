@@ -94,40 +94,46 @@ Graph build_graph(Map const& map, vector<Triangle> const& triangles, vector<int>
         graph.add_adjacent(pc_index, p_exit_index);
     };
 
-    // adding the exit
+    // adding the exit (connected only to the center as it is already a side)
     int exit_triangle_index = find_triangle_that_include_point(triangles, points, map.exit.position);
     assert(exit_triangle_index != -1);
     auto exit_triangle = triangles[exit_triangle_index];
     auto exit_triangle_center = (points[exit_triangle.a] + points[exit_triangle.b] + points[exit_triangle.c]) / 3.0;
     auto exit_triangle_point = point_to_index[exit_triangle_center];
-
     graph.add_adjacent(exit_triangle_point, exit_node);
 
-    // adding points to the victims
+    auto add_connections_to_triangle = [&](int node_index, int triangle_index) {
+        auto triangle = triangles[triangle_index];
+        auto p1 = points[triangle.a];
+        auto p2 = points[triangle.b];
+        auto p3 = points[triangle.c];
 
+        if (points_label[triangle.a] != points_label[triangle.b]) {
+            int i1 = point_to_index[(p1+p2)/2];
+            graph.add_adjacent(node_index, i1);
+        }
+        if (points_label[triangle.b] != points_label[triangle.c]) {
+            int i2 = point_to_index[(p2+p3)/2];
+            graph.add_adjacent(node_index, i2);
+        }
+        if (points_label[triangle.c] != points_label[triangle.a]) {
+            int i3 = point_to_index[(p3+p1)/2];
+            graph.add_adjacent(node_index, i3);
+        }
+    };
+
+    // adding the robot position
+    int robot_triangle_index = find_triangle_that_include_point(triangles, points, map.exit.position);
+    assert(robot_triangle_index != -1);
+    add_connections_to_triangle(robot_position, robot_triangle_index);
+
+    // adding points to the victims
     for (int i=0; i<map.victims.size(); i++) {
         auto victim = map.victims[i];
         int victim_triangle_index = find_triangle_that_include_point(triangles, points, victim.position);
         // victim_triangle_index = 0;
         assert(victim_triangle_index != -1);
-        auto victim_triangle = triangles[victim_triangle_index];
-        auto p1 = points[victim_triangle.a];
-        auto p2 = points[victim_triangle.b];
-        auto p3 = points[victim_triangle.c];
-
-        int victim_index = victims_position[i];
-        if (points_label[victim_triangle.a] != points_label[victim_triangle.b]) {
-            int i1 = point_to_index[(p1+p2)/2];
-            graph.add_adjacent(victim_index, i1);
-        }
-        if (points_label[victim_triangle.b] != points_label[victim_triangle.c]) {
-            int i2 = point_to_index[(p2+p3)/2];
-            graph.add_adjacent(victim_index, i2);
-        }
-        if (points_label[victim_triangle.c] != points_label[victim_triangle.a]) {
-            int i3 = point_to_index[(p3+p1)/2];
-            graph.add_adjacent(victim_index, i3);
-        }
+        add_connections_to_triangle(i, victim_triangle_index);
     }
 
 
