@@ -5,6 +5,7 @@
 #include "../trajectory_planner/trajectory_planner.hpp"
 #include "../graph_builder/graph_builder.hpp"
 #include "../util/hashable_tuple.hpp"
+#include <mutex>
 
 using namespace  std;
 
@@ -71,3 +72,28 @@ private:
     float heuristic_cost(int node_start, int next_objective);
     vector<ExecutableDubinsTrajectory> build_solution(unordered_map<tuple<int, float,int>, tuple<int, float, int>, hash_triplet> & backtracking, tuple<int, float, int> end);
 };
+
+
+class Result {
+public:
+    vector<ExecutableDubinsTrajectory> trajectory;
+    /// first element is node index, second is position and value
+    vector<tuple<int,Victim>> victims;
+    float total_length;
+    float total_value;
+    Result(vector<ExecutableDubinsTrajectory> trajectory, vector<tuple<int, Victim>> victims);
+};
+
+class RescueOrderSearch {
+public:
+    RescueOrderSearch(DubinsGraph& graph);
+    void  execute();
+    Result get_best_solution(float time_limit);
+    void debug(Result r);
+private:
+    /// graph
+    DubinsGraph & graph;
+    mutex results_mutex;
+    vector<Result> results;
+};
+

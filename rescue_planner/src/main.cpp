@@ -46,12 +46,15 @@ int main_debug(int argc, char** argv) {
         ROBOT_K
     );
 
+    auto x = RescueOrderSearch(dubins_graph);
     // victims debug: 73, 74, 75 76
-    auto search = GraphSearch(dubins_graph, graph.victims_odes);
+    // auto search = GraphSearch(dubins_graph, graph.victims_odes);
     // auto search = GraphSearch(dubins_graph, {56});
     // auto search = GraphSearch(dubins_graph, {});
-    auto path = search.execute();
-    search.debug(path);
+    auto search = RescueOrderSearch(dubins_graph);
+    search.execute();
+    auto best = search.get_best_solution(80);
+    search.debug(best);
 
     return 0;
 }
