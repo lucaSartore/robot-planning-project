@@ -145,3 +145,18 @@ vector<tuple<Point, Point> > Map::get_obstacle_lines() {
     return v;
 }
 
+vector<tuple<Point, Point> > Map::get_victims_lines() {
+    vector<tuple<Point, Point>> to_return;
+
+
+
+    for (auto & v: victims) {
+        auto a = v.position + Point::FromPolar(M_PI/2, 0.3);
+        auto b = v.position + Point::FromPolar(-M_PI/6, 0.3);
+        auto c = v.position + Point::FromPolar(M_PI*7/6, 0.3);
+        to_return.push_back({a, b});
+        to_return.push_back({b, c});
+        to_return.push_back({c, a});
+    }
+    return to_return;
+}

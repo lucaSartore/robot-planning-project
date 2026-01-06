@@ -131,9 +131,9 @@ Graph build_graph(Map const& map, vector<Triangle> const& triangles, vector<int>
     for (int i=0; i<map.victims.size(); i++) {
         auto victim = map.victims[i];
         int victim_triangle_index = find_triangle_that_include_point(triangles, points, victim.position);
-        // victim_triangle_index = 0;
+        int victim_index = victims_position[i];
         assert(victim_triangle_index != -1);
-        add_connections_to_triangle(i, victim_triangle_index);
+        add_connections_to_triangle(victim_index, victim_triangle_index);
     }
 
 

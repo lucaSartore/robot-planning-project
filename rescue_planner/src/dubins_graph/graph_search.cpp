@@ -172,7 +172,9 @@ vector<ExecutableDubinsTrajectory> GraphSearch::execute() {
 }
 
 void GraphSearch::debug(vector<ExecutableDubinsTrajectory> path) {
-    auto obstacle_Lines = graph.map.get_obstacle_lines();
+    auto lines = graph.map.get_obstacle_lines();
+    auto victims_lines = graph.map.get_victims_lines();
+    lines.insert(lines.begin(), victims_lines.begin(), victims_lines.end());
     auto path_points = vector<Point>();
     for (auto segment: path) {
         auto segment_points = segment.get_trajectory(3);
@@ -180,6 +182,6 @@ void GraphSearch::debug(vector<ExecutableDubinsTrajectory> path) {
             path_points.push_back(p.position);
         }
     }
-    display(obstacle_Lines, path_points);
+    display(lines, path_points);
 }
 
