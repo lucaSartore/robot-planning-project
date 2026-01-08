@@ -79,6 +79,7 @@ public:
     /// first element is node index, second is position and value
     vector<tuple<int,Victim>> victims;
     float total_length;
+    float total_time;
     float total_value;
     Result(vector<ExecutableDubinsTrajectory> trajectory, vector<tuple<int, Victim>> victims);
     vector<Pose> get_full_trajectory(int resolution = 10);

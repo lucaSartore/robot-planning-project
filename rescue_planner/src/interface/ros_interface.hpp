@@ -8,6 +8,7 @@
 #include "geometry_msgs/PoseArray.h"
 #include "nav_msgs/Odometry.h"
 #include "loco_planning/Reference.h"
+#include "rosgraph_msgs/Clock.h"
 #include <optional>
 
 class RosInterface: public Interface {
@@ -32,10 +33,13 @@ public:
     static std::optional<ros::Publisher> publisher;
     static std::optional<ros::NodeHandle> node_handle;
     static std::vector<ros::Subscriber> subscribers;
+    static std::optional<Result> result;
+    static float time_movement_start;
     static void TryExportMap();
     static void ObstacleCallback(const obstacles_msgs::ObstacleArrayMsg & msg);
     static void VictimCallback(const obstacles_msgs::ObstacleArrayMsg & msg);
     static void MapCallback(const geometry_msgs::Polygon & msg);
     static void ExitCallback(const geometry_msgs::PoseArray & msg);
     static void RobotPositionCallback(const nav_msgs::Odometry & msg);
+    static void RosClockCallback(const rosgraph_msgs::Clock & msg);
 };

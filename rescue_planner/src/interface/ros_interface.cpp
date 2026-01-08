@@ -19,7 +19,8 @@ bool RosInterface::exit_done;
 bool RosInterface::position_done;
 std::mutex RosInterface::map_ready_mutex;
 std::mutex RosInterface::edit_mutex;
-
+std::optional<Result> RosInterface::result;
+float RosInterface::time_movement_start;
 std::optional<ros::Publisher> RosInterface::publisher;
 std::optional<ros::NodeHandle> RosInterface::node_handle;
 std::vector<ros::Subscriber> RosInterface::subscribers;
@@ -79,6 +80,9 @@ RosInterface::RosInterface(){
     );
     RosInterface::subscribers.push_back(
         RosInterface::node_handle.value().subscribe("/limo0/odom", 1, this->RobotPositionCallback)
+    );
+    RosInterface::subscribers.push_back(
+        RosInterface::node_handle.value().subscribe("/clock", 1, this->RosClockCallback)
     );
 
 
@@ -173,6 +177,31 @@ void RosInterface::RobotPositionCallback(const nav_msgs::Odometry & msg) {
 }
 
 
+void RosInterface::RosClockCallback(const rosgraph_msgs::Clock & msg) {
+    float t = msg.clock.toSec();
+
+    if (RosInterface::result.has_value() && RosInterface::time_movement_start == 0) {
+        RosInterface::time_movement_start = t;
+    }
+
+    if (RosInterface::result.has_value()){
+        auto v = RosInterface::result.value().get_at(
+            t-RosInterface::time_movement_start
+        );
+        auto pose = std::get<0>(v);
+        auto vel = std::get<1>(v);
+
+        auto ref = loco_planning::Reference();
+        ref.x_d =  pose.position.x;
+        ref.y_d =  pose.position.y;
+        ref.theta_d = pose.orientation;
+        ref.v_d = vel.velocity;
+        ref.omega_d = vel.angular_velocity;
+        RosInterface::publisher.value().publish(
+            ref
+        );
+    }
+}
 
 void RosInterface::TryExportMap() {
     RosInterface::edit_mutex.lock();
@@ -228,21 +257,5 @@ Map RosInterface::GetMap() {
 
 
 void RosInterface::OutputTrajectory(Result result) {
-    for (auto p: trajectory) {
-        // float32 x_d
-        // float32 y_d
-        // float32 theta_d
-        // float32 v_d
-        // float32 omega_d
-        // bool plan_finished
-
-        cout << "publishing ref: " << p << endl;
-        auto ref = loco_planning::Reference();
-        ref.x_d =  p.position.x;
-        ref.y_d =  p.position.y;
-        ref.theta_d =  p.orientation;
-        RosInterface::publisher.value().publish(
-            ref
-        );
-    }
+    RosInterface::result = {result};
 }

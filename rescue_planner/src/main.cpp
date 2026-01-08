@@ -63,6 +63,7 @@ int main_ros(int argc, char** argv) {
     auto search = process_map(map);
     auto best = search.get_best_solution(50);
     interface.OutputTrajectory(best);
+    ros::spin();
 
     return 0;
 }
@@ -71,8 +72,17 @@ int main_debug(int argc, char** argv) {
     DebugInterface interface = DebugInterface();
     auto map = interface.GetMap();
     auto search =  process_map(map);
-    auto best = search.get_best_solution(50);
-    search.debug(best);
+    auto best = search.get_best_solution(100);
+
+    vector<Point> to_display = {};
+    for (int i=0; i<500; i++) {
+        float t = best.total_time * i / 900.0;
+        auto p = best.get_at(t);
+        auto point = std::get<0>(p).position;
+        to_display.push_back(point);
+    }
+    display({}, to_display);
+
     return 0;
 }
 #endif

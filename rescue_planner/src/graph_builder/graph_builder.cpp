@@ -28,7 +28,7 @@ Graph::Graph(vector<Point> points, int exit_node, int robot_position, vector<int
         i += 1;
     }
     this->exit_node = exit_node;
-    this -> robot_position = robot_position;
+    this ->robot_position = robot_position;
     this->victims_odes = victims_odes;
 }
 

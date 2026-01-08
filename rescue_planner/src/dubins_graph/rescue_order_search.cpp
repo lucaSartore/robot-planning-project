@@ -110,8 +110,10 @@ Result::Result(vector<ExecutableDubinsTrajectory> trajectory, vector<tuple<int, 
         total_value += std::get<1>(v).value;
     }
     total_length = 0;
+    total_time = 0;
     for (auto v: trajectory) {
         total_length += v.length;
+        total_time += v.time;
     }
 }
 
@@ -125,14 +127,18 @@ vector<Pose> Result::get_full_trajectory(int resolution) {
 }
 
 tuple<Pose, Velocities> Result::get_at(float time) {
+
+    if (time >= total_time) {
+        auto t = trajectory[trajectory.size() - 1];
+        auto p = t(t.time);
+        return {p,{0,0}};
+    }
+
     float time_so_far = 0;
     int i = 0;
     while (time_so_far + trajectory[i].time < time) {
-        i += 1;
         time_so_far += trajectory[i].time;
-        if (i == trajectory.size()) {
-            throw std::logic_error{"out of time"};
-        }
+        i += 1;
     }
 
     time -= time_so_far;
