@@ -8,12 +8,12 @@
 #include "geometry_msgs/PoseArray.h"
 #include "nav_msgs/Odometry.h"
 #include "loco_planning/Reference.h"
-
 #include <optional>
 
 class RosInterface: public Interface {
 public:
     RosInterface();
+    std::optional<Map> TryGetMap();
     virtual Map GetMap();
     virtual void OutputTrajectory(vector<Pose> trajectory);
 

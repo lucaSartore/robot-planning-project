@@ -14,29 +14,9 @@
 #endif
 using namespace std;
 
-#ifdef DOCKER_ROS
-int main_ros(int argc, char** argv) {
-    cout << "start" << endl;
-    ros::init(argc, argv, "planner");
-    RosInterface interface = RosInterface();
-    while (true) {
-        cout << "loop << endl;
-        ros::spinOnce();
-        interface.OutputTrajectory({{{2,2},0}});
-    }
-    ros::spin();
-    return 0;
-}
-#else
-int main_debug(int argc, char** argv) {
-    DebugInterface interface = DebugInterface();
-    auto map = interface.GetMap();
-    // map.robot_position = {{-1,-4},-1.5};
-    // cout << map << endl;
 
-    // map.obstacles.push_back(Obstacle::CreateCylinder({3,3}, 2));
-    // display(map.get_obstacle_lines(), {});
 
+RescueOrderSearch process_map(Map map) {
     CombinatorialGraphBuilder builder = CombinatorialGraphBuilder();
     auto graph = builder.convert(map);
     // graph.debug();
@@ -46,7 +26,6 @@ int main_debug(int argc, char** argv) {
     // graph.add_skip_ahead_connections();
     // graph.debug();
 
-    ExecutableDubinsTrajectory trajectory = ExecutableDubinsTrajectory();
     OccupationApproximation occupation = {map, 1000, 0.5};
     // occupation.debug();
 
@@ -58,16 +37,43 @@ int main_debug(int argc, char** argv) {
         ROBOT_K
     );
 
-    auto x = RescueOrderSearch(dubins_graph);
-    // victims debug: 73, 74, 75 76
-    // auto search = GraphSearch(dubins_graph, graph.victims_odes);
-    // auto search = GraphSearch(dubins_graph, {56});
-    // auto search = GraphSearch(dubins_graph, {});
     auto search = RescueOrderSearch(dubins_graph);
     search.execute();
+    return search;
+}
+
+#ifdef DOCKER_ROS
+int main_ros(int argc, char** argv) {
+    cout << "start" << endl;
+    ros::init(argc, argv, "planner");
+    RosInterface interface = RosInterface();
+
+    Map map;
+    while (true) {
+        ros::spinOnce();
+
+        auto map_optional = interface.TryGetMap();
+
+        if (map_optional.has_value()) {
+            map = map_optional.value();
+            break;
+        }
+    }
+
+    auto search = process_map(map);
+    auto best = search.get_best_solution(50);
+    auto path = best.get_full_trajectory();
+    interface.OutputTrajectory(path);
+
+    return 0;
+}
+#else
+int main_debug(int argc, char** argv) {
+    DebugInterface interface = DebugInterface();
+    auto map = interface.GetMap();
+    auto search =  process_map(map);
     auto best = search.get_best_solution(50);
     search.debug(best);
-
     return 0;
 }
 #endif

@@ -69,6 +69,8 @@ void RescueOrderSearch::execute() {
     auto victims = graph.graph.victims_odes;
     auto permutations = all_permutations_with_excluded_elements(victims);
 
+    mutex results_mutex;
+
     auto worker = [&](vector<int> order) {
         auto g = GraphSearch(graph, order);
         vector raw_result = g.execute();
@@ -111,6 +113,15 @@ Result::Result(vector<ExecutableDubinsTrajectory> trajectory, vector<tuple<int, 
     for (auto v: trajectory) {
         total_length += v.length;
     }
+}
+
+vector<Pose> Result::get_full_trajectory(int resolution) {
+    vector<Pose> result;
+    for (auto v: trajectory) {
+        auto t = v.get_trajectory(resolution);
+        result.insert(result.end(), t.begin(), t.end());
+    }
+    return result;
 }
 
 Result RescueOrderSearch::get_best_solution(float time_limit) {

@@ -172,6 +172,8 @@ void RosInterface::RobotPositionCallback(const nav_msgs::Odometry & msg) {
     TryExportMap();
 }
 
+
+
 void RosInterface::TryExportMap() {
     RosInterface::edit_mutex.lock();
 
@@ -197,7 +199,22 @@ void RosInterface::TryExportMap() {
     // cout << "Map build: " << RosInterface::built_map << endl;
 }
 
-Map RosInterface::GetMap(){
+
+std::optional<Map> RosInterface::TryGetMap() {
+    // making sure that the map is done initializing
+    if (RosInterface::map_ready_mutex.try_lock()) {
+        RosInterface::map_ready_mutex.unlock();
+    } else {
+        return {};
+    }
+
+    RosInterface::edit_mutex.lock();
+    Map to_return = RosInterface::built_map;
+    RosInterface::edit_mutex.unlock();
+    return {to_return};
+}
+
+Map RosInterface::GetMap() {
     // making sure that the map is done initializing
     RosInterface::map_ready_mutex.lock();
     RosInterface::map_ready_mutex.unlock();
@@ -205,8 +222,9 @@ Map RosInterface::GetMap(){
     RosInterface::edit_mutex.lock();
     Map to_return = RosInterface::built_map;
     RosInterface::edit_mutex.unlock();
-    return to_return;
+    return {to_return};
 }
+
 
 void RosInterface::OutputTrajectory(vector<Pose> trajectory) {
     for (auto p: trajectory) {

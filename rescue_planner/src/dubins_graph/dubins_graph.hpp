@@ -82,18 +82,18 @@ public:
     float total_length;
     float total_value;
     Result(vector<ExecutableDubinsTrajectory> trajectory, vector<tuple<int, Victim>> victims);
+    vector<Pose> get_full_trajectory(int resolution = 10);
 };
 
 class RescueOrderSearch {
 public:
-    RescueOrderSearch(DubinsGraph& graph);
+    explicit RescueOrderSearch(DubinsGraph& graph);
     void  execute();
     Result get_best_solution(float time_limit);
     void debug(Result r);
 private:
     /// graph
     DubinsGraph & graph;
-    mutex results_mutex;
     vector<Result> results;
 };
 
