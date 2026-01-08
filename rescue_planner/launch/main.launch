@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- input Parameters -->
+  <arg name="use_gui" default="true" />
+  <arg name="use_rviz" default="true" />
+  <arg name="victims_activated" default="true" />
+  <arg name="generate_new_config" default="true" />
+  <arg name="start_controller" default="true" />
+  <arg name="debug" default="false" />
+
+  <!-- Parameters -->
+  <arg name="world_name" default="empty.world" />
+  <arg name="gen_map_params_file" default="$(find map_pkg)/config/full_config.yaml" />
+  <arg name="elements_models_path" default="$(find map_pkg)/models" />
+  <arg name="gazebo_models_path" default="$(find map_pkg)/worlds" />
+
+
+  <arg name="x_pos" default="0.0" />
+  <arg name="y_pos" default="0." />
+  <arg name="yaw_pos" default="0.0" />
+
+  <arg name="x_pos1" default="2.0" />
+  <arg name="y_pos1" default="1." />
+  <arg name="yaw_pos1" default="0.0" />
+
+  <!-- Set parameters in param server-->
+  <!-- Set ROS parameters as vectors -->
+  <param name="x_pos_init" value="[$(arg x_pos), $(arg x_pos1)]" type="yaml"/>
+  <param name="y_pos_init" value="[$(arg y_pos), $(arg y_pos1)]" type="yaml"/>
+  <param name="yaw_pos_init" value="[$(arg yaw_pos), $(arg yaw_pos1)]" type="yaml"/>
+  <param name="use_sim_time" value="true" />
+
+  <!-- Spawn map publishes borders and obstacles-->
+  <include file="$(find map_pkg)/launch/spawn_map.launch">
+    <arg name="gen_map_params_file" value="$(arg gen_map_params_file)" />
+    <arg name="gazebo_models_path" value="$(arg gazebo_models_path)" />
+    <arg name="elements_models_path" value="$(arg elements_models_path)" />
+    <arg name="victims_activated" value="$(arg victims_activated)" />
+    <arg name="generate_new_config" value="$(arg generate_new_config)" />
+  </include>
+
+  <!--Start  gazebo-->
+  <include file="$(find gazebo_ros)/launch/empty_world.launch">
+    <arg name="world_name" value="$(find map_pkg)/worlds/$(arg world_name)" />
+    <arg name="paused" value="false" />
+    <arg name="use_sim_time" value="true" />
+    <arg name="gui" value="$(arg use_gui)" />
+    <arg name="headless" value="false" />
+    <arg name="debug" value="false" />
+  </include>
+
+
+  <!-- start planner -->
+  <node pkg="rescue_planner" type="planner" name="planner" output="screen"  args=""/>
+
+  <group ns="limo0">
+    <arg name="robot_id" value="0" />
+
+    <!-- Description with per-robot namespace -->
+    <include file="$(find limo_description)/launch/upload.launch">
+      <arg name="robot_id" default="$(arg robot_id)" />
+    </include>
+
+    <!--spawn
+    the limo robot-->
+    <node name="spawn_model" pkg="gazebo_ros" type="spawn_model"
+      args="-urdf -param robot_description -model limo$(arg robot_id) -x $(arg x_pos) -y $(arg y_pos) -z 1. -Y $(arg yaw_pos)" />
+
+       <!-- TF & joints -->
+    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" >
+      <param name="rate" value="100" />
+    </node>
+    <!--static    TF -->
+    <node pkg="tf2_ros" type="static_transform_publisher" name="map_to_limo$(arg robot_id)_odom"
+      args="0 0 0 0 0 0 map limo$(arg robot_id)/odom" />
+      
+          <group if="$(arg start_controller)">
+  <node pkg="loco_planning" type="controller.py" name="controller" output="screen"  args="--robot_id  $(arg robot_id)  --debug $(arg debug)"/>
+</group>
+      
+  </group>
+
+  <!-- RViz (optional) -->
+  <node pkg="rviz" type="rviz" name="rviz" if="$(arg use_rviz)" args="-d $(find loco_planning)/rviz/conf_multiple.rviz" />
+
+  <!--turtlebot-->
+
+  <!-- AMCL Localization -->
+  <!--node
+  pkg="amcl" type="amcl" name="amcl" output="screen"/-->
+
+  <!-- this publishes in ground_truth topic the TF  from odom to base_link -->
+  <!--node
+  pkg="map_pkg" type="ground_truth_odom.py" name="ground_truth_odom" output="screen">
+    <param name="robot_name" value="$(arg shelfino_name)" />
+ </node-->
+
+  <!--this
+  emulates perfect no drift condition matching odom (that usually drifts) with map -->
+  <!--node
+  pkg="tf" type="static_transform_publisher" name="map_to_odom_static_broadcaster"
+      args="0 0 0 0 0 0 map odom 100" /-->
+
+  <!-- Move Base -->
+  <!--   <include file="$(find turtlebot3_navigation)/launch/move_base.launch" /> -->
+  <!--     <group ns="move_base"> -->
+  <!--        --><!-- Lower update and publish
+  rates to reduce CPU load -->
+  <!--      <rosparam param="local_costmap/update_frequency">5.0</rosparam> -->
+  <!--     <rosparam param="global_costmap/update_frequency">1.0</rosparam> -->
+  <!--     </group> -->
+
+
+</launch>

@@ -246,6 +246,11 @@ if (DOCKER_ROS)
     install(TARGETS planner
       RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
     )
+
+
+    install(DIRECTORY launch/
+      DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/launch
+      PATTERN ".svn" EXCLUDE)
 endif ()
 ## Mark libraries for installation
 ## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
