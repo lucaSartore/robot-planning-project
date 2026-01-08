@@ -267,7 +267,7 @@ Pose RotatingTrajectory:: operator()(float time) const{
 }
 
 Velocities RotatingTrajectory::get_velocities(float time) const {
-    return {omega * radius, omega};
+    return {abs(omega * radius), omega};
 }
 
 RotatingTrajectory::RotatingTrajectory(Point center, float radius, float omega, float phi) {

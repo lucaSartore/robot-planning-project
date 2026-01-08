@@ -75,13 +75,18 @@ int main_debug(int argc, char** argv) {
     auto best = search.get_best_solution(100);
 
     vector<Point> to_display = {};
-    for (int i=0; i<500; i++) {
-        float t = best.total_time * i / 900.0;
+    vector<tuple<Point,Point>> lines = {};
+    for (int i=0; i<50; i++) {
+        float t = best.total_time * i / 50.0;
         auto p = best.get_at(t);
-        auto point = std::get<0>(p).position;
-        to_display.push_back(point);
+        auto pose = std::get<0>(p);
+        auto v = std::get<1>(p);
+        auto p1 = pose.position;
+        auto p2 = pose.position + Point::FromPolar(pose.orientation, v.velocity);
+        lines.push_back({p1,p2});
+        to_display.push_back(p1);
     }
-    display({}, to_display);
+    display(lines, to_display);
 
     return 0;
 }
