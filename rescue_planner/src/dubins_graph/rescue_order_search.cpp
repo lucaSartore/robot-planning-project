@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <execution>
 
+#include "../util/constants.hpp"
+
 void print_vector(vector<int> v) {
     cout << "[";
     for (auto e: v) {
@@ -149,7 +151,7 @@ tuple<Pose, Velocities> Result::get_at(float time) {
 
 
 Result RescueOrderSearch::get_best_solution(float time_limit) {
-    float length_limit = time_limit * graph.velocity;
+    float length_limit = time_limit * VELOCITY;
     vector<Result> filtered_results = {};
     for (auto &r: results) {
         if (r.total_length < length_limit) {
