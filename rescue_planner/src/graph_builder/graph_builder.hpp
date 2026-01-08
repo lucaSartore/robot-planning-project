@@ -1,5 +1,5 @@
 #pragma once
-#include "../interface/interface.hpp"
+#include "../interface/common_types.hpp"
 #include <vector>
 #include <iostream>
 #include <unordered_map>

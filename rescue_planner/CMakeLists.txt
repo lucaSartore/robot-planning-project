@@ -1,6 +1,6 @@
 
-option(DOCKER_ROS "Compile for ros or for debug" ON)
-#option(DOCKER_ROS "Compile for ros or for debug" OFF)
+#option(DOCKER_ROS "Compile for ros or for debug" ON)
+option(DOCKER_ROS "Compile for ros or for debug" OFF)
 
 if(DOCKER_ROS)
     cmake_minimum_required(VERSION 3.0.2)
@@ -128,6 +128,8 @@ set(SOURCES
 
     src/interface/interface.cpp
     src/interface/interface.hpp
+    src/interface/common_types.cpp
+    src/interface/common_types.hpp
 
     src/triangulation/triangulation.cpp
     src/triangulation/triangulation.hpp
@@ -168,7 +170,7 @@ if(DOCKER_ROS)
         ${SOURCES}
         src/interface/ros_interface.cpp
         src/interface/ros_interface.hpp
-            src/main.cpp
+        src/main.cpp
     )
 endif ()
 

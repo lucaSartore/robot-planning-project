@@ -62,8 +62,7 @@ int main_ros(int argc, char** argv) {
 
     auto search = process_map(map);
     auto best = search.get_best_solution(50);
-    auto path = best.get_full_trajectory();
-    interface.OutputTrajectory(path);
+    interface.OutputTrajectory(best);
 
     return 0;
 }

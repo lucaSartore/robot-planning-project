@@ -1,7 +1,7 @@
 #pragma once
 #include <unordered_map>
 #include <vector>
-#include "../interface/interface.hpp"
+#include "../interface/common_types.hpp"
 #include "../trajectory_planner/trajectory_planner.hpp"
 #include "../graph_builder/graph_builder.hpp"
 #include "../util/hashable_tuple.hpp"
@@ -73,7 +73,6 @@ private:
     vector<ExecutableDubinsTrajectory> build_solution(unordered_map<tuple<int, float,int>, tuple<int, float, int>, hash_triplet> & backtracking, tuple<int, float, int> end);
 };
 
-
 class Result {
 public:
     vector<ExecutableDubinsTrajectory> trajectory;
@@ -83,7 +82,9 @@ public:
     float total_value;
     Result(vector<ExecutableDubinsTrajectory> trajectory, vector<tuple<int, Victim>> victims);
     vector<Pose> get_full_trajectory(int resolution = 10);
+    tuple<Pose, Velocities> get_at(float time);
 };
+
 
 class RescueOrderSearch {
 public:

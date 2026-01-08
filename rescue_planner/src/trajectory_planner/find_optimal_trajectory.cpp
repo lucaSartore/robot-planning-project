@@ -15,7 +15,6 @@ DubinsTrajectory solve_lrl(float theta_start, float theta_end, float k);
 DubinsTrajectory solve_rlr(float theta_start, float theta_end, float k);
 DubinsTrajectory solve(DubinsTrajectoryKind kind, float theta_start, float theta_end, float k);
 
-Pose inverse_transfoformation(Pose p, float phi, float lambda, float x_ref, float y_ref);
 
 
 
@@ -84,6 +83,7 @@ DubinsTrajectory solve_lsl(float theta_start, float theta_end, float k) {
     float s3 = 1/k * mod2pi(theta_end - atan2(c,s));
     return {LSL, s1, s2, s3};
 }
+
 
 DubinsTrajectory solve(DubinsTrajectoryKind kind, float theta_start, float theta_end, float k) {
     switch (kind) {
@@ -177,10 +177,6 @@ Pose direct_transformation(Pose p, float phi, float lambda, float x_ref, float y
     return {{x,y}, angle};
 }
 
-Pose inverse_transfoformation(Pose p, float phi, float lambda, float x_ref, float y_ref) {
-}
-
-
 DubinsTrajectory::DubinsTrajectory(DubinsTrajectoryKind kind, float t1, float t2, float t3) {
     this->kind = kind;
     this->t1 = t1;
@@ -256,14 +252,24 @@ Pose Trajectory::operator()(float time) const {
     throw logic_error("not implemented");
 }
 
+Velocities Trajectory::get_velocities(float time) const {
+    throw logic_error("not implemented");
+}
+
+
 Pose RotatingTrajectory:: operator()(float time) const{
-        auto position = center + Point::FromPolar(
-            phi + time * omega,
-            radius
-        );
-        float orientation = phi + time * omega + (omega > 0? M_PI / 2 : -M_PI / 2);
-        return {position, orientation};
-    }
+    auto position = center + Point::FromPolar(
+        phi + time * omega,
+        radius
+    );
+    float orientation = phi + time * omega + (omega > 0? M_PI / 2 : -M_PI / 2);
+    return {position, orientation};
+}
+
+Velocities RotatingTrajectory::get_velocities(float time) const {
+    return {omega * radius, omega};
+}
+
 RotatingTrajectory::RotatingTrajectory(Point center, float radius, float omega, float phi) {
     this->center = center;
     this->radius = radius;
@@ -288,6 +294,11 @@ Pose StraightTrajectory:: operator()(float time) const {
     auto orientation = initial_pose.orientation;
     return {position, orientation};
 }
+
+Velocities StraightTrajectory::get_velocities(float time) const {
+    return {speed, 0};
+}
+
 StraightTrajectory::StraightTrajectory(Pose initial_pose, float speed) {
     this->initial_pose = initial_pose;
     this->speed = speed;
@@ -365,6 +376,23 @@ vector<Pose> ExecutableDubinsTrajectory::get_trajectory(int resolution) {
 
     return trajectory;
 }
+
+Velocities execute_v(variant<RotatingTrajectory, StraightTrajectory> const& trajectory, float time) {
+    return std::visit([&](auto& arg) { return arg.get_velocities(time); }, trajectory);
+}
+
+
+Velocities ExecutableDubinsTrajectory::get_velocities(float time) const {
+    if (time <= this->t1) {
+        return execute_v(this->trajectory_1, time);
+    }
+    if (time <= this->t2) {
+        return execute_v(this->trajectory_2, time - this->t1);
+    }
+    return execute_v(this->trajectory_3, time - this->t2);
+}
+
+
 void ExecutableDubinsTrajectory::debug(int resolution) {
     auto trajectory = get_trajectory(resolution);
     vector<Point> points;
@@ -374,3 +402,7 @@ void ExecutableDubinsTrajectory::debug(int resolution) {
     display({}, points);
 }
 
+Velocities::Velocities(float velocity, float angular_velocity) {
+    this->velocity = velocity;
+    this->angular_velocity = angular_velocity;
+}

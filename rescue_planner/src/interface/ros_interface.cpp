@@ -227,7 +227,7 @@ Map RosInterface::GetMap() {
 }
 
 
-void RosInterface::OutputTrajectory(vector<Pose> trajectory) {
+void RosInterface::OutputTrajectory(Result result) {
     for (auto p: trajectory) {
         // float32 x_d
         // float32 y_d

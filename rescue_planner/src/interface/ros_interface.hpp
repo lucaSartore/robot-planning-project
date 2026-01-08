@@ -15,7 +15,7 @@ public:
     RosInterface();
     std::optional<Map> TryGetMap();
     virtual Map GetMap();
-    virtual void OutputTrajectory(vector<Pose> trajectory);
+    virtual void OutputTrajectory(Result result);
 
     // all member are static because there can be only one map at the same time
     // (due to the fact that only one topic of each kind exist)

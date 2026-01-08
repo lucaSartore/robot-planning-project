@@ -124,6 +124,24 @@ vector<Pose> Result::get_full_trajectory(int resolution) {
     return result;
 }
 
+tuple<Pose, Velocities> Result::get_at(float time) {
+    float time_so_far = 0;
+    int i = 0;
+    while (time_so_far + trajectory[i].time < time) {
+        i += 1;
+        time_so_far += trajectory[i].time;
+        if (i == trajectory.size()) {
+            throw std::logic_error{"out of time"};
+        }
+    }
+
+    time -= time_so_far;
+    auto p = trajectory[i](time);
+    auto v = trajectory[i].get_velocities(time);
+    return {p,v};
+}
+
+
 Result RescueOrderSearch::get_best_solution(float time_limit) {
     float length_limit = time_limit * graph.velocity;
     vector<Result> filtered_results = {};

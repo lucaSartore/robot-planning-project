@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "../interface/interface.hpp"
+#include "../interface/common_types.hpp"
 #include <variant>
 
 enum DubinsTrajectoryKind {
@@ -12,9 +12,18 @@ enum DubinsTrajectoryKind {
     LRL
 };
 
+
+class Velocities {
+public:
+    float velocity;
+    float angular_velocity;
+    Velocities(float velocity, float angular_velocity);
+};
+
 class Trajectory {
 public:
     virtual Pose operator()(float time) const;
+    virtual Velocities get_velocities(float time) const;
 };
 
 class RotatingTrajectory: public Trajectory {
@@ -24,6 +33,7 @@ public:
     float omega;
     float phi;
     virtual Pose operator()(float time) const;
+    virtual Velocities get_velocities(float time) const;
     RotatingTrajectory(Point center, float radius, float omega, float phi);
     static RotatingTrajectory LTrajectory(Pose initial_pose, float radius, float speed);
     static RotatingTrajectory RTrajectory(Pose initial_pose, float radius, float speed);
@@ -34,6 +44,7 @@ public:
     Pose initial_pose;
     float speed;
     virtual Pose operator()(float time) const;
+    virtual Velocities get_velocities(float time) const;
     StraightTrajectory(Pose initial_pose, float speed);
 };
 
@@ -49,6 +60,7 @@ public:
     void scale(float lambda);
 };
 
+
 class ExecutableDubinsTrajectory{
 public:
     /// transition time between first and second trajectory
@@ -58,11 +70,12 @@ public:
     /// total length of the trajectory
     float length;
     float time;
-    variant<RotatingTrajectory,StraightTrajectory> trajectory_1 = StraightTrajectory({{0,0},0},0);
-    variant<RotatingTrajectory,StraightTrajectory> trajectory_2 = StraightTrajectory({{0,0},0},0);
-    variant<RotatingTrajectory,StraightTrajectory> trajectory_3 = StraightTrajectory({{0,0},0},0);
+    std::variant<RotatingTrajectory,StraightTrajectory> trajectory_1 = StraightTrajectory({{0,0},0},0);
+    std::variant<RotatingTrajectory,StraightTrajectory> trajectory_2 = StraightTrajectory({{0,0},0},0);
+    std::variant<RotatingTrajectory,StraightTrajectory> trajectory_3 = StraightTrajectory({{0,0},0},0);
 
     Pose operator()(float time);
+    Velocities get_velocities(float time) const;
     explicit ExecutableDubinsTrajectory();
     ExecutableDubinsTrajectory(DubinsTrajectory trajectory, Pose start, float k, float v);
     vector<Pose> get_trajectory(int resolution = 10);
