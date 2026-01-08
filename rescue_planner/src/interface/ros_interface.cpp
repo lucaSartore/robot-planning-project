@@ -196,7 +196,8 @@ void RosInterface::TryExportMap() {
 
     RosInterface::edit_mutex.unlock();
 
-    // cout << "Map build: " << RosInterface::built_map << endl;
+    // map is finally ready
+    RosInterface::map_ready_mutex.unlock();
 }
 
 
