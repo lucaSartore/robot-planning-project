@@ -97,6 +97,8 @@ public:
 
     void debug(int scaling=10);
 
+    float x_min, x_max;
+    float y_min, y_max;
 private:
     std::tuple<int, int> get_indexes(float x, float y) const;
     Point inverse(int x, int y) const;
@@ -111,8 +113,6 @@ private:
 
     std::vector<std::vector<bool>> ocupations;
 
-    float x_min, x_max;
-    float y_min, y_max;
 
     int resolution_x;
     int resolution_y;

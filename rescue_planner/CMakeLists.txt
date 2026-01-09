@@ -1,6 +1,6 @@
 
-option(DOCKER_ROS "Compile for ros or for debug" ON)
-# option(DOCKER_ROS "Compile for ros or for debug" OFF)
+#option(DOCKER_ROS "Compile for ros or for debug" ON)
+ option(DOCKER_ROS "Compile for ros or for debug" OFF)
 
 if(DOCKER_ROS)
     cmake_minimum_required(VERSION 3.0.2)
@@ -162,6 +162,8 @@ set(SOURCES
     src/dubins_graph/graph_search.cpp
     src/dubins_graph/rescue_order_search.cpp
 
+    src/include/kdtree/kdtree.cpp
+    src/include/kdtree/kdtree.hpp
 )
 
 if(DOCKER_ROS)

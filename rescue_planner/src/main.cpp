@@ -1,10 +1,13 @@
 #include <iostream>
+#include <map>
+
 #include "interface/debug_interface.hpp"
 #include "interface/interface.hpp"
 #include "graph_builder/combinatorial_graph_builder.hpp"
 #include "util/display.hpp"
 #include "trajectory_planner/trajectory_planner.hpp"
 #include "dubins_graph/dubins_graph.hpp"
+#include "graph_builder/sampling_graph_builder.hpp"
 #include "util/constants.hpp"
 
 
@@ -16,18 +19,20 @@ using namespace std;
 
 
 
-RescueOrderSearch process_map(Map map) {
-    CombinatorialGraphBuilder builder = CombinatorialGraphBuilder();
-    auto graph = builder.convert(map);
-    // graph.debug();
-    graph.add_skip_ahead_connections();
-    graph.add_skip_ahead_connections();
-    // graph.add_skip_ahead_connections();
-    // graph.add_skip_ahead_connections();
-    // graph.debug();
-
+RescueOrderSearch process_map(Map map, bool debug = false) {
     OccupationApproximation occupation = {map, 1000, 0.5};
-    // occupation.debug();
+
+    Graph graph= {{},0,0,{}};
+
+    if (STRATEGY == COMBINATORIAL) {
+        CombinatorialGraphBuilder builder = CombinatorialGraphBuilder();
+        graph = builder.convert(map);
+        graph.add_skip_ahead_connections();
+        graph.add_skip_ahead_connections();
+    } else {
+        SamplingGraphBuilder builder = {occupation, 300, 10};
+        graph = builder.convert(map);
+    }
 
     auto dubins_graph = DubinsGraph(
         map,
@@ -39,6 +44,11 @@ RescueOrderSearch process_map(Map map) {
 
     auto search = RescueOrderSearch(dubins_graph);
     search.execute();
+
+    if (debug) {
+        auto best = search.get_best_solution(120);
+        search.debug(best);
+    }
     return search;
 }
 
@@ -70,25 +80,11 @@ int main_ros(int argc, char** argv) {
 #else
 int main_debug(int argc, char** argv) {
     DebugInterface interface = DebugInterface();
+
     auto map = interface.GetMap();
-    auto search =  process_map(map);
-    auto best = search.get_best_solution(100);
+    OccupationApproximation occupation = {map, 1000, 0.5};
 
-    vector<Point> to_display = {};
-    vector<tuple<Point,Point>> lines = {};
-    for (int i=0; i<50; i++) {
-        float t = best.total_time * i / 50.0;
-        auto p = best.get_at(t);
-        auto pose = std::get<0>(p);
-        auto v = std::get<1>(p);
-        auto p1 = pose.position;
-        auto p2 = pose.position + Point::FromPolar(pose.orientation, v.velocity);
-        lines.push_back({p1,p2});
-        to_display.push_back(p1);
-    }
-    display(lines, to_display);
-
-    return 0;
+    auto search =  process_map(map, true);
 }
 #endif
 

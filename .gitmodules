@@ -4,3 +4,6 @@
 [submodule "limo-firmware"]
 	path = limo-firmware
 	url = https://github.com/idra-lab/limo-firmware.git
+[submodule "rescue_planner/src/include/kdtree"]
+	path = rescue_planner/src/include/kdtree
+	url = https://github.com/cdalitz/kdtree-cpp.git

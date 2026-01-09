@@ -29,6 +29,15 @@ Point Point::operator +(const Point point) const {
     return {x + point.x, y + point.y};
 }
 
+Point Point::operator -(const Point point) const {
+    return {x - point.x, y - point.y};
+}
+
+Point Point::operator*(const float v) const {
+    return {x*v, y*v};
+}
+
+
 void Point::operator /=(const float v) {
     x/=v;
     y/=v;
