@@ -22,9 +22,12 @@ public:
 class DubinsNode {
 public:
     int id;
+    mutex connections_mutex;
     unordered_map<float, vector<DubinsEdge>> connections;
     explicit DubinsNode(int id);
     DubinsNode();
+    DubinsNode(const DubinsNode &other);
+    DubinsNode &operator=(const DubinsNode &other);
     void add_connection(float angle, DubinsEdge edge);
 };
 

@@ -1,8 +1,10 @@
 #include "dubins_graph.hpp"
 
 #include <math.h>
+#include <thread>
 
 #include "../trajectory_planner/trajectory_planner.hpp"
+#include "../util/constants.hpp"
 
 
 DubinsEdge::DubinsEdge(DubinsNode *node, float arriving_angle, ExecutableDubinsTrajectory trajectory) {
@@ -21,12 +23,24 @@ DubinsNode::DubinsNode() {
     connections = {};
 }
 
+DubinsNode::DubinsNode(const DubinsNode &other) {
+    id = other.id;
+    connections = other.connections;
+}
+
+DubinsNode &DubinsNode::operator=(const DubinsNode &other) {
+    this->id = other.id;
+    this->connections = other.connections;
+    return *this;
+}
 
 void DubinsNode::add_connection(float angle, DubinsEdge edge) {
+    this->connections_mutex.lock();
     if (this->connections.find(angle) == this->connections.end()) {
         this->connections[angle] = {};
     }
     this->connections[angle].push_back(edge);
+    this->connections_mutex.unlock();
 }
 
 
@@ -58,9 +72,31 @@ void DubinsGraph::insert_nodes_in_graph() {
 }
 
 void DubinsGraph::generate_edges(vector<float> const& angles) {
-    for (auto const& i: graph.nodes) {
-        auto id = i.first;
-        generate_edge(id, angles);
+    int index = 0;
+    mutex index_mutex;
+
+    auto thread = [&]() {
+        while (true) {
+            index_mutex.lock();
+            int local_index = index;
+            index += 1;
+            index_mutex.unlock();
+            if (local_index >= this->nodes.size()) {
+                break;
+            }
+            int id = this->nodes[local_index].id;
+            generate_edge(id, angles);
+        }
+
+    };
+    vector<std::thread> threads;
+
+    for (int i=0; i<NUM_WORKERS; i++) {
+        threads.push_back(std::thread(thread));
+    }
+
+    for (int i=0; i<NUM_WORKERS; i++) {
+        threads[i].join();
     }
 }
 
