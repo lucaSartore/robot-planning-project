@@ -151,7 +151,6 @@ vector<ExecutableDubinsTrajectory> GraphSearch::execute() {
 
         // solution found!
         if (new_objectives.empty()) {
-            std::cout << "found solution with final cost: " << to_expand.length_so_far << std::endl;
             return build_solution(backtracking, node_identifier);
         }
 

@@ -20,10 +20,20 @@ using namespace std;
 
 
 RescueOrderSearch process_map(Map map, bool debug_best = false, float debug_graph = false) {
+    std::chrono::steady_clock::time_point start, end;
+    auto print_time = [&](string name) {
+        auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        cout << "execution time for " << name << " = " << ms << " [ms]" << endl;
+    };
+
+    start = std::chrono::steady_clock::now();
     OccupationApproximation occupation = {map, 1000, 0.5};
+    end = std::chrono::steady_clock::now();
+    print_time("occupation approximation creation");
 
     Graph graph= {{},0,0,{}};
 
+    start = std::chrono::steady_clock::now();
     if (STRATEGY == COMBINATORIAL) {
         CombinatorialGraphBuilder builder = CombinatorialGraphBuilder();
         graph = builder.convert(map);
@@ -34,11 +44,14 @@ RescueOrderSearch process_map(Map map, bool debug_best = false, float debug_grap
         graph = builder.convert(map);
         graph.add_skip_ahead_connections();
     }
+    end = std::chrono::steady_clock::now();
+    print_time("graph creation");
 
     if (debug_graph) {
         graph.debug();
     }
 
+    start = std::chrono::steady_clock::now();
     auto dubins_graph = DubinsGraph(
         map,
         occupation,
@@ -46,9 +59,14 @@ RescueOrderSearch process_map(Map map, bool debug_best = false, float debug_grap
         VELOCITY,
         ROBOT_K
     );
+    end = std::chrono::steady_clock::now();
+    print_time("dubins graph creation");
 
+    start = std::chrono::steady_clock::now();
     auto search = RescueOrderSearch(dubins_graph);
     search.execute();
+    end = std::chrono::steady_clock::now();
+    print_time("execution of search");
 
     if (debug_best) {
         auto best = search.get_best_solution(120);
@@ -85,10 +103,7 @@ int main_ros(int argc, char** argv) {
 #else
 int main_debug(int argc, char** argv) {
     DebugInterface interface = DebugInterface();
-
     auto map = interface.GetMap();
-    OccupationApproximation occupation = {map, 1000, 0.5};
-
     auto _ =  process_map(map, true);
     return 0;
 }
