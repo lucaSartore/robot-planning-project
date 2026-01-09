@@ -22,7 +22,6 @@ using namespace std;
 RescueOrderSearch process_map(Map map, bool debug_best = false, float debug_graph = false) {
     OccupationApproximation occupation = {map, 1000, 0.5};
 
-    map.robot_position.orientation = 1.5;
     Graph graph= {{},0,0,{}};
 
     if (STRATEGY == COMBINATORIAL) {
@@ -77,7 +76,7 @@ int main_ros(int argc, char** argv) {
     }
 
     auto search = process_map(map);
-    auto best = search.get_best_solution(50);
+    auto best = search.get_best_solution(120);
     interface.OutputTrajectory(best);
     ros::spin();
 
