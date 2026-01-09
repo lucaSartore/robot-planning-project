@@ -90,6 +90,7 @@ int main_debug(int argc, char** argv) {
     OccupationApproximation occupation = {map, 1000, 0.5};
 
     auto _ =  process_map(map, true);
+    return 0;
 }
 #endif
 
