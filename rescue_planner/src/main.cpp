@@ -19,9 +19,10 @@ using namespace std;
 
 
 
-RescueOrderSearch process_map(Map map, bool debug = false) {
+RescueOrderSearch process_map(Map map, bool debug_best = false, float debug_graph = false) {
     OccupationApproximation occupation = {map, 1000, 0.5};
 
+    map.robot_position.orientation = 1.5;
     Graph graph= {{},0,0,{}};
 
     if (STRATEGY == COMBINATORIAL) {
@@ -30,8 +31,13 @@ RescueOrderSearch process_map(Map map, bool debug = false) {
         graph.add_skip_ahead_connections();
         graph.add_skip_ahead_connections();
     } else {
-        SamplingGraphBuilder builder = {occupation, 300, 10};
+        SamplingGraphBuilder builder = {occupation, N_SAMPLED_POINTS, N_NEAREST};
         graph = builder.convert(map);
+        graph.add_skip_ahead_connections();
+    }
+
+    if (debug_graph) {
+        graph.debug();
     }
 
     auto dubins_graph = DubinsGraph(
@@ -45,7 +51,7 @@ RescueOrderSearch process_map(Map map, bool debug = false) {
     auto search = RescueOrderSearch(dubins_graph);
     search.execute();
 
-    if (debug) {
+    if (debug_best) {
         auto best = search.get_best_solution(120);
         search.debug(best);
     }
@@ -84,7 +90,7 @@ int main_debug(int argc, char** argv) {
     auto map = interface.GetMap();
     OccupationApproximation occupation = {map, 1000, 0.5};
 
-    auto search =  process_map(map, true);
+    auto _ =  process_map(map, true);
 }
 #endif
 

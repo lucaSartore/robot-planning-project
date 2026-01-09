@@ -20,8 +20,8 @@ Graph SamplingGraphBuilder::convert(Map map) {
 
     Graph graph = Graph(
         points,
-        robot_position,
         exit_position,
+        robot_position,
         victims_position
     );
 

@@ -10,4 +10,7 @@ const float ROBOT_RADIUS = 0.5;
 const int OCCUPATION_RESOLUTION_X = 1000;
 enum Strategy{ COMBINATORIAL, SAMPLING };
 /// strategy used for the motion planning graph
-const Strategy STRATEGY  = Strategy::SAMPLING;
+const Strategy STRATEGY  = SAMPLING;
+
+const int N_SAMPLED_POINTS = 300;
+const int N_NEAREST = 10;
