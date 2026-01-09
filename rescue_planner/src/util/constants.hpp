@@ -15,3 +15,5 @@ const Strategy STRATEGY  = SAMPLING;
 const int N_SAMPLED_POINTS = 300;
 /// number of nearest point to connect to in the sampling approach
 const int N_NEAREST = 10;
+/// thread to spawn for multithreaded workloads
+const int NUM_WORKERS = 12;

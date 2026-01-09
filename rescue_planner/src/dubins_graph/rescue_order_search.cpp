@@ -1,6 +1,7 @@
 #include "dubins_graph.hpp"
 #include <algorithm>
 #include <execution>
+#include <thread>
 
 #include "../util/constants.hpp"
 
@@ -73,7 +74,8 @@ void RescueOrderSearch::execute() {
 
     mutex results_mutex;
 
-    auto worker = [&](vector<int> order) {
+    auto execute_one = [&](int index) {
+        auto order = permutations[index];
         auto g = GraphSearch(graph, order);
         vector raw_result = g.execute();
         vector<tuple<int,Victim>> victims;
@@ -95,13 +97,33 @@ void RescueOrderSearch::execute() {
         results_mutex.unlock();
     };
 
-    std::for_each(
-        permutations.begin(),
-        permutations.end(),
-        worker
-    );
+    mutex counter_mutex;
+    int counter = 0;
 
+    auto thread = [&]() {
+        while (true) {
+            results_mutex.lock();
+            int local_counter = counter;
+            counter += 1;
+            results_mutex.unlock();
 
+            if (local_counter >= permutations.size()) {
+                break;
+            }
+
+            execute_one(local_counter);
+        }
+    };
+
+    vector<std::thread> threads;
+
+    for (int i=0; i<NUM_WORKERS; i++) {
+        threads.push_back(std::thread(thread));
+    }
+
+    for (int i=0; i<NUM_WORKERS; i++) {
+        threads[i].join();
+    }
 }
 
 Result::Result(vector<ExecutableDubinsTrajectory> trajectory, vector<tuple<int, Victim>> victims) {
