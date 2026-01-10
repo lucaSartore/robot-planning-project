@@ -257,60 +257,61 @@ satisfy the specific constraints of the problem.
 The main modification w.r.t. A* is how we considered a node ``visited'':
 In the traditional A* the state of nodes visited is simply
 a set containing the IDs of the nodes visited.
-However in this modified version the set contains a triplet
-$<node\_id,\, arriving\_angle,\, next\_objective>$
+However in this modified version the set contains a triplet:
+$$<node\_id,\, arriving\_angle,\, next\_objective>$$
 This is done to keep into account the fact that a node visited
 can be visited again if either it is visited by arriving with a
 different angle, or if the next objective in the list of nodes
 to visit has changed.
 
-\begin{lstlisting}
+The other part that is slightly
+\begin{lstlisting}[language=Python]
 
-// graph data structure
+# graph data structure
 graph = {}
 
-// ordered list of nodes to visit
+# ordered list of nodes to visit
 objectives = [...]
     
-// empty set with visited nodes
+# empty set with visited nodes
 visited = {}
 
-// priority queue
+# priority queue
 queue = {0, {
     start_node,
     start_angle,
     objective[0]
 }}
 
-while !queue.empty:
-  // getting cost, node id,
-  // angle and next objective
-  // of the first node
-  // in the queue
+while not queue.empty:
+  # getting cost, node id,
+  # angle and next objective
+  # of the first node
+  # in the queue
   cost, next = queue.pop
   node, angle, obj = next
 
-  // avoid revisiting nodes
+  # avoid revisiting nodes
   if [node angle obj] in visited:
     continue
 
-  // found the solution
+  # found the solution
   if node == graph.exit:
     return
 
   if node == obj:
     obj = next_obj(obj)
 
-  // iterate over all the edges 
-  // that start from node 'node'
-  // and start with angle 'angle'
+  # iterate over all the edges 
+  # that start from node 'node'
+  # and start with angle 'angle'
   for e in graph.edges(node, angle):
-    // calculate heuristic estimated
-    // cost to terminate the journey
+    # calculate heuristic estimated
+    # cost to terminate the journey
     h = heuristic(e.next_node, obj)
     
-    // find lower bound cost
-    // of current path
+    # find lower bound cost
+    # of current path
     new_cost = cost + e.edge_cost + h
 
     queue.push(
