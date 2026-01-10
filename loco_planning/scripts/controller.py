@@ -145,7 +145,7 @@ class Controller():
             self.des_theta = msg.theta_d
             self.v_d = msg.v_d
             self.omega_d = msg.omega_d
-            print(colored(f"received {self.robot_name} des_x: {self.des_x}, des_y: {self.des_y}, des_theta: {self.des_theta}, des_v: {self.v_d}, des_omega: {self.omega_d}", "red"))
+            # print(colored(f"received {self.robot_name} des_x: {self.des_x}, des_y: {self.des_y}, des_theta: {self.des_theta}, des_v: {self.v_d}, des_omega: {self.omega_d}", "red"))
 
 
     def receive_pose(self, msg):

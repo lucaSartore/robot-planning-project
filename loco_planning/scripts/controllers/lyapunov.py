@@ -87,6 +87,7 @@ class LyapunovController:
         #domega = - self.K_THETA * etheta - 2/etheta * v_d * np.sin(0.5 * etheta)* np.sin(psi - 0.5 * beta)
         # save errors for plotting
 
+        print(f"ERRORS: {ex} {ey}")
         self.log_e_x.append(ex)
         self.log_e_y.append(ey)
         self.log_e_theta.append(etheta)
