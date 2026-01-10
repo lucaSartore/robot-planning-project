@@ -1,7 +1,9 @@
 #include "dubins_graph.hpp"
 
+#include <assert.h>
 #include <math.h>
 #include <thread>
+#include <unordered_set>
 
 #include "../trajectory_planner/trajectory_planner.hpp"
 #include "../util/constants.hpp"
@@ -44,32 +46,113 @@ void DubinsNode::add_connection(float angle, DubinsEdge edge) {
 }
 
 
-DubinsGraph::DubinsGraph(Map& map, OccupationApproximation& occupation_approximation, Graph& graph, float velocity, float k)
+DubinsGraph::DubinsGraph(Map& map, OccupationApproximation& occupation_approximation, Graph& graph, float velocity, float k, optional<Result> initial_guess, float initial_guess_search_range)
     :occupation_approximation(occupation_approximation), map(map), graph(graph) {
     this->velocity = velocity;
     this->k = k;
     this->nodes = {};
-    this->insert_nodes_in_graph();
-    this->generate_edges({
-        0.00 * M_PI,
-        0.25 * M_PI,
-        0.50 * M_PI,
-        0.75 * M_PI,
-        1.00 * M_PI,
-        1.00 * M_PI,
-        1.25 * M_PI,
-        1.50 * M_PI,
-        1.75 * M_PI,
-    });
+    this->initial_guess = initial_guess;
+    this->initial_guess_search_range = initial_guess_search_range;
+    if (initial_guess.has_value()) {
+        this->insert_nodes_in_graph_with_initial_guess();
+        this->generate_edges_with_initial_guess();
+    } else {
+        this->insert_nodes_in_graph();
+        this->generate_edges({
+            0.00 * M_PI,
+            0.25 * M_PI,
+            0.50 * M_PI,
+            0.75 * M_PI,
+            1.00 * M_PI,
+            1.00 * M_PI,
+            1.25 * M_PI,
+            1.50 * M_PI,
+            1.75 * M_PI,
+        });
+    }
 }
 
 void DubinsGraph::insert_nodes_in_graph() {
-    for (auto i: this->graph.nodes) {
-        auto id = i.first;
-        auto node = i.second;
+    for (const auto&[fst, snd]: this->graph.nodes) {
+        auto id = fst;
+        auto node = snd;
         this->nodes[id] = DubinsNode(id);
     }
 }
+
+void DubinsGraph::insert_nodes_in_graph_with_initial_guess() {
+    assert(this->initial_guess.has_value());
+    unordered_set<int> nodes_to_keep = {};
+    for (auto  &n: this->initial_guess.value().nodes_order) {
+        nodes_to_keep.insert(std::get<0>(n));
+    }
+    for (const auto&[fst, snd]: this->graph.nodes) {
+        if (nodes_to_keep.find(fst) == nodes_to_keep.end()) {
+            continue;
+        }
+        auto id = fst;
+        auto node = snd;
+        this->nodes[id] = DubinsNode(id);
+    }
+
+}
+
+void DubinsGraph::generate_edges_with_initial_guess() {
+    assert(this->initial_guess.has_value());
+
+    auto path = initial_guess.value().nodes_order;
+    int index = 0;
+    mutex index_mutex;
+
+    auto generate_angles = [&](float starting) {
+        vector<float> to_return = {};
+        to_return.reserve(9);
+        for (int i=-4; i<=4; i++) {
+            to_return.push_back(
+                starting + i / 4.0 * this->initial_guess_search_range
+                );
+        }
+        return to_return;
+    };
+
+    auto thread = [&]() {
+        while (true) {
+            index_mutex.lock();
+            int local_index = index;
+            index += 1;
+            index_mutex.unlock();
+            if (local_index >= path.size()-1) {
+                break;
+            }
+            auto start = path[local_index];
+            auto end = path[local_index+1];
+            auto start_id = std::get<0>(start);
+            auto end_id = std::get<0>(end);
+            auto start_angle = std::get<1>(start);
+            auto end_angle = std::get<1>(end);
+
+            auto start_angles = generate_angles(start_angle);
+            auto end_angles = generate_angles(end_angle);
+
+            for (float s: start_angles) {
+                for (float e: end_angles) {
+                    generate_edge(start_id, end_id, s,e);
+                }
+            }
+        }
+
+    };
+    vector<std::thread> threads;
+
+    for (int i=0; i<NUM_WORKERS; i++) {
+        threads.push_back(std::thread(thread));
+    }
+
+    for (int i=0; i<NUM_WORKERS; i++) {
+        threads[i].join();
+    }
+}
+
 
 void DubinsGraph::generate_edges(vector<float> const& angles) {
     int index = 0;
@@ -99,6 +182,7 @@ void DubinsGraph::generate_edges(vector<float> const& angles) {
         threads[i].join();
     }
 }
+
 
 void DubinsGraph::generate_edge(int node, vector<float> const& angles) {
     return generate_edge(node, angles, angles);

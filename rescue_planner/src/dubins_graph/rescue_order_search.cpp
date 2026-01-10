@@ -77,7 +77,7 @@ void RescueOrderSearch::execute() {
     auto execute_one = [&](int index) {
         auto order = permutations[index];
         auto g = GraphSearch(graph, order);
-        vector raw_result = g.execute();
+        auto raw_result = g.execute();
         vector<tuple<int,Victim>> victims;
         for (int v: order) {
             victims.push_back({
@@ -88,8 +88,9 @@ void RescueOrderSearch::execute() {
             });
         }
         auto result = Result(
-            raw_result,
-            victims
+            std::get<1>(raw_result),
+            victims,
+            std::get<0>(raw_result)
         );
 
         results_mutex.lock();
@@ -126,9 +127,10 @@ void RescueOrderSearch::execute() {
     }
 }
 
-Result::Result(vector<ExecutableDubinsTrajectory> trajectory, vector<tuple<int, Victim>> victims) {
+Result::Result(vector<ExecutableDubinsTrajectory> trajectory, vector<tuple<int, Victim>> victims, vector<tuple<int, float>> nodes_order) {
     this->trajectory = trajectory;
     this->victims = victims;
+    this->nodes_order = std::move(nodes_order);
     total_value = 0;
     for (auto v: victims) {
         total_value += std::get<1>(v).value;
@@ -172,7 +174,7 @@ tuple<Pose, Velocities> Result::get_at(float time) {
 }
 
 
-Result RescueOrderSearch::get_best_solution(float time_limit) {
+Result RescueOrderSearch::get_best_solution(float time_limit, bool refinement) {
     float length_limit = time_limit * VELOCITY;
     vector<Result> filtered_results = {};
     for (auto &r: results) {
@@ -182,7 +184,7 @@ Result RescueOrderSearch::get_best_solution(float time_limit) {
     }
 
     if (filtered_results.empty()) {
-        return {{},{}};
+        return {{},{},{}};
     }
 
     auto max_value = std::max_element(filtered_results.begin(), filtered_results.end(), [](Result const& a, Result const& b) {
@@ -197,7 +199,29 @@ Result RescueOrderSearch::get_best_solution(float time_limit) {
         }
     }
 
-    return *std::min_element(filtered_results_2.begin(), filtered_results_2.end(), [](Result const& a, Result const& b) {
+    auto best = *std::min_element(filtered_results_2.begin(), filtered_results_2.end(), [](Result const& a, Result const& b) {
         return a.total_length < b.total_length;
     });
+
+    if (!refinement) {
+        return best;
+    }
+
+    auto g = DubinsGraph(
+        this->graph.map,
+        this->graph.occupation_approximation,
+        this->graph.graph,
+        this->graph.velocity,
+        this->graph.k,
+        {best}
+    );
+
+    // passing the victim orders is not necessary, as there is only one path
+    auto gs = GraphSearch(g, {});
+    auto raw_result = gs.execute();
+    return Result(
+        std::get<1>(raw_result),
+        best.victims,
+        std::get<0>(raw_result)
+    );
 }

@@ -66,14 +66,17 @@ GraphSearch::GraphSearch(DubinsGraph &graph, vector<int> victims): graph(graph) 
     }
 }
 
-vector<ExecutableDubinsTrajectory> GraphSearch::build_solution(unordered_map<tuple<int, float,int>, tuple<int, float, int>, hash_triplet> & backtracking, tuple<int, float, int> end) {
-    vector<ExecutableDubinsTrajectory> to_return = {};
+tuple<vector<tuple<int, float>>, vector<ExecutableDubinsTrajectory>> GraphSearch::build_solution(unordered_map<tuple<int, float,int>, tuple<int, float, int>, hash_triplet> & backtracking, tuple<int, float, int> end) {
+    vector<tuple<int, float>> visited_nodes = {};
+    visited_nodes.emplace_back(std::get<0>(end), std::get<1>(end));
+    vector<ExecutableDubinsTrajectory> trajectories = {};
     auto current = end;
     while (true) {
         auto next = backtracking[current];
         if (std::get<0>(next) == -1) {
-            std::reverse(to_return.begin(), to_return.end());
-            return to_return;
+            std::reverse(visited_nodes.begin(), visited_nodes.end());
+            std::reverse(trajectories.begin(), trajectories.end());
+            return {visited_nodes, trajectories};
         }
         int node_from_id = std::get<0>(next);
         float node_from_angle = std::get<1>(next);
@@ -87,13 +90,14 @@ vector<ExecutableDubinsTrajectory> GraphSearch::build_solution(unordered_map<tup
             return e.arriving_angle == node_to_angle && e.node->id == node_to_id;
         });
         assert(connection != edges.end());
-        to_return.push_back(connection->trajectory);
+        trajectories.push_back(connection->trajectory);
+        visited_nodes.push_back({node_from_id, node_from_angle});
 
         current = next;
     }
 }
 
-vector<ExecutableDubinsTrajectory> GraphSearch::execute() {
+tuple<vector<tuple<int, float>>, vector<ExecutableDubinsTrajectory>> GraphSearch::execute() {
     // set of nodes visited containing:
     // <node_id, angle, next_objectove>
     unordered_set<tuple<int, float, int>, hash_triplet> visited;

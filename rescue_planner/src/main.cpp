@@ -19,7 +19,8 @@ using namespace std;
 
 
 
-RescueOrderSearch process_map(Map map, bool debug_best = false, float debug_graph = false) {
+RescueOrderSearch process_map(Map map, bool debug_best = false, float debug_graph = false, float time_limit = 120) {
+    std::chrono::steady_clock::time_point start_full, end_full;
     std::chrono::steady_clock::time_point start, end;
     auto print_time = [&](string name) {
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
@@ -27,6 +28,7 @@ RescueOrderSearch process_map(Map map, bool debug_best = false, float debug_grap
     };
 
     start = std::chrono::steady_clock::now();
+    start_full = std::chrono::steady_clock::now();
     OccupationApproximation occupation = {map, 1000, 0.5};
     end = std::chrono::steady_clock::now();
     print_time("occupation approximation creation");
@@ -68,8 +70,18 @@ RescueOrderSearch process_map(Map map, bool debug_best = false, float debug_grap
     end = std::chrono::steady_clock::now();
     print_time("execution of search");
 
+    start = std::chrono::steady_clock::now();
+    auto best = search.get_best_solution(time_limit, false);
+    end = std::chrono::steady_clock::now();
+    print_time("solutiohn refinement");
+
+    end_full = std::chrono::steady_clock::now();
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_full - start_full).count();
+    cout << "total execution time" << " = " << ms << " [ms]" << endl;
+
+    cout << "best solution took " << best.total_time << " seconds and had a save-score of " << best.total_value << endl;
+
     if (debug_best) {
-        auto best = search.get_best_solution(120);
         search.debug(best);
     }
     return search;
