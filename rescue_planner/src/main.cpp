@@ -19,7 +19,7 @@ using namespace std;
 
 
 
-RescueOrderSearch process_map(Map map, bool debug_best = false, float debug_graph = false, bool debug_refinement = false, bool print_times = false, float time_limit = 120) {
+Result process_map(Map map, bool debug_best = false, float debug_graph = false, bool debug_refinement = false, bool print_times = false, float time_limit = 120) {
     std::chrono::steady_clock::time_point start_full, end_full;
     std::chrono::steady_clock::time_point start, end;
     auto print_time = [&](string name) {
@@ -102,7 +102,7 @@ RescueOrderSearch process_map(Map map, bool debug_best = false, float debug_grap
     if (debug_best) {
         search.debug(best);
     }
-    return search;
+    return best;
 }
 
 #ifdef DOCKER_ROS
@@ -123,8 +123,14 @@ int main_ros(int argc, char** argv) {
         }
     }
 
-    auto search = process_map(map);
-    auto best = search.get_best_solution(120);
+    auto best =  process_map(
+        map,
+        true,
+        false,
+        true,
+        true,
+        120
+    );
     interface.OutputTrajectory(best);
     ros::spin();
 
@@ -136,7 +142,7 @@ int main_debug(int argc, char** argv) {
     auto map = interface.GetMap();
     auto _ =  process_map(
         map,
-         false,
+        false,
         false,
         true,
         true,

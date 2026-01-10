@@ -6,6 +6,7 @@
 #include <string>
 
 void display(std::vector<std::tuple<Point, Point>> lines, std::vector<Point> points) {
+    std::cout << "trying to display" << std::endl;
     std::ostringstream ss;
     ss << lines.size() << " " << points.size() << "\n";
 
@@ -21,7 +22,12 @@ void display(std::vector<std::tuple<Point, Point>> lines, std::vector<Point> poi
     }
 
     // Script path is relative to project root; adjust if you run the binary from a different CWD
-    const std::string script = "display.py";
+    #ifdef DOCKER_ROS
+        const std::string script = "/root/ros_ws/src/rescue_planner/src/util/display.py";
+    #else
+        const std::string script = "display.py";
+    #endif
+
     std::string cmd = std::string("python3 \"") + script + "\"";
 
     FILE *pipe = popen(cmd.c_str(), "w");
