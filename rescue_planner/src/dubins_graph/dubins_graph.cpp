@@ -137,6 +137,15 @@ void DubinsGraph::generate_edges(vector<float> const& angles) {
     int index = 0;
     mutex index_mutex;
 
+    int initial_size = this->nodes.size();
+
+    vector<int> nodes_indexes = {};
+    nodes_indexes.reserve(this->nodes.size());
+    for (auto &[_,node]: this->nodes) {
+        nodes_indexes.push_back(node.id);
+    }
+
+
     auto thread = [&]() {
         while (true) {
             index_mutex.lock();
@@ -146,7 +155,7 @@ void DubinsGraph::generate_edges(vector<float> const& angles) {
             if (local_index >= this->nodes.size()) {
                 break;
             }
-            int id = this->nodes[local_index].id;
+            int id = nodes_indexes[local_index];
             generate_edge(id, angles);
         }
 
