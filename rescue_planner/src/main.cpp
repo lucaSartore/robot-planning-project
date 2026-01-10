@@ -19,10 +19,11 @@ using namespace std;
 
 
 
-RescueOrderSearch process_map(Map map, bool debug_best = false, float debug_graph = false, float time_limit = 120) {
+RescueOrderSearch process_map(Map map, bool debug_best = false, float debug_graph = false, bool debug_refinement = false, bool print_times = false, float time_limit = 120) {
     std::chrono::steady_clock::time_point start_full, end_full;
     std::chrono::steady_clock::time_point start, end;
     auto print_time = [&](string name) {
+        if (!print_times) return;
         auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
         cout << "execution time for " << name << " = " << ms << " [ms]" << endl;
     };
@@ -70,14 +71,31 @@ RescueOrderSearch process_map(Map map, bool debug_best = false, float debug_grap
     end = std::chrono::steady_clock::now();
     print_time("execution of search");
 
+
     start = std::chrono::steady_clock::now();
-    auto best = search.get_best_solution(time_limit, false);
+    Result best = {{},{},{}};
+    if (debug_refinement) {
+        best = search.get_best_solution(time_limit);
+        cout << "time-score without refinement" << " = " << best.total_time << best.total_value << endl;
+        search.refine_all_solutions(M_PI/4);
+        best = search.get_best_solution(time_limit);
+        cout << "time-score with one-step refinement" << " = " << best.total_time << best.total_value << endl;
+        search.refine_all_solutions(M_PI/32);
+        best = search.get_best_solution(time_limit);
+        cout << "time-score with two-step refinement" << " = " << best.total_time << best.total_value << endl;
+    } else {
+        search.refine_all_solutions(M_PI/4);
+        search.refine_all_solutions(M_PI/32);
+        best = search.get_best_solution(time_limit);
+    }
     end = std::chrono::steady_clock::now();
     print_time("solutiohn refinement");
 
     end_full = std::chrono::steady_clock::now();
     auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_full - start_full).count();
-    cout << "total execution time" << " = " << ms << " [ms]" << endl;
+    if (print_times) {
+        cout << "total execution time" << " = " << ms << " [ms]" << endl;
+    }
 
     cout << "best solution took " << best.total_time << " seconds and had a save-score of " << best.total_value << endl;
 
@@ -116,7 +134,14 @@ int main_ros(int argc, char** argv) {
 int main_debug(int argc, char** argv) {
     DebugInterface interface = DebugInterface();
     auto map = interface.GetMap();
-    auto _ =  process_map(map, true);
+    auto _ =  process_map(
+        map,
+         false,
+        false,
+        true,
+        true,
+        120
+        );
     return 0;
 }
 #endif

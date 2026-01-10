@@ -101,8 +101,6 @@ void DubinsGraph::generate_edges_with_initial_guess() {
     assert(this->initial_guess.has_value());
 
     auto path = initial_guess.value().nodes_order;
-    int index = 0;
-    mutex index_mutex;
 
     auto generate_angles = [&](float starting) {
         vector<float> to_return = {};
@@ -115,41 +113,22 @@ void DubinsGraph::generate_edges_with_initial_guess() {
         return to_return;
     };
 
-    auto thread = [&]() {
-        while (true) {
-            index_mutex.lock();
-            int local_index = index;
-            index += 1;
-            index_mutex.unlock();
-            if (local_index >= path.size()-1) {
-                break;
-            }
-            auto start = path[local_index];
-            auto end = path[local_index+1];
-            auto start_id = std::get<0>(start);
-            auto end_id = std::get<0>(end);
-            auto start_angle = std::get<1>(start);
-            auto end_angle = std::get<1>(end);
+    for (int i=0; i<path.size()-1; i++) {
+        auto start = path[i];
+        auto end = path[i+1];
+        auto start_id = std::get<0>(start);
+        auto end_id = std::get<0>(end);
+        auto start_angle = std::get<1>(start);
+        auto end_angle = std::get<1>(end);
 
-            auto start_angles = generate_angles(start_angle);
-            auto end_angles = generate_angles(end_angle);
+        auto start_angles = generate_angles(start_angle);
+        auto end_angles = generate_angles(end_angle);
 
-            for (float s: start_angles) {
-                for (float e: end_angles) {
-                    generate_edge(start_id, end_id, s,e);
-                }
+        for (float s: start_angles) {
+            for (float e: end_angles) {
+                generate_edge(start_id, end_id, s,e);
             }
         }
-
-    };
-    vector<std::thread> threads;
-
-    for (int i=0; i<NUM_WORKERS; i++) {
-        threads.push_back(std::thread(thread));
-    }
-
-    for (int i=0; i<NUM_WORKERS; i++) {
-        threads[i].join();
     }
 }
 

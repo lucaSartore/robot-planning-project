@@ -104,7 +104,8 @@ class RescueOrderSearch {
 public:
     explicit RescueOrderSearch(DubinsGraph& graph);
     void  execute();
-    Result get_best_solution(float time_limit, bool refinement=true);
+    Result get_best_solution(float time_limit);
+    void refine_all_solutions(float range);
     void debug(Result r);
 private:
     /// graph

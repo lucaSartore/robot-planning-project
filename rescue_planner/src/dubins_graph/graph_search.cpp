@@ -85,6 +85,7 @@ tuple<vector<tuple<int, float>>, vector<ExecutableDubinsTrajectory>> GraphSearch
         float node_to_angle = std::get<1>(current);
 
         auto node_from = graph.nodes[node_from_id];
+        assert(node_from_id ==node_from.id);
         auto edges = node_from.connections[node_from_angle];
         auto connection = std::find_if(edges.begin(), edges.end(), [&](DubinsEdge e) {
             return e.arriving_angle == node_to_angle && e.node->id == node_to_id;

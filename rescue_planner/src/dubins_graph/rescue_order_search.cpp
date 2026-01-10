@@ -93,9 +93,11 @@ void RescueOrderSearch::execute() {
             std::get<0>(raw_result)
         );
 
-        results_mutex.lock();
-        results.push_back(result);
-        results_mutex.unlock();
+        if (result.total_time != 0) {
+            results_mutex.lock();
+            results.push_back(result);
+            results_mutex.unlock();
+        }
     };
 
     mutex counter_mutex;
@@ -174,7 +176,7 @@ tuple<Pose, Velocities> Result::get_at(float time) {
 }
 
 
-Result RescueOrderSearch::get_best_solution(float time_limit, bool refinement) {
+Result RescueOrderSearch::get_best_solution(float time_limit) {
     float length_limit = time_limit * VELOCITY;
     vector<Result> filtered_results = {};
     for (auto &r: results) {
@@ -203,25 +205,67 @@ Result RescueOrderSearch::get_best_solution(float time_limit, bool refinement) {
         return a.total_length < b.total_length;
     });
 
-    if (!refinement) {
-        return best;
+    return best;
+}
+
+void RescueOrderSearch::refine_all_solutions(float range = M_PI / 4) {
+    vector<Result> new_results = {};
+    new_results.reserve(results.size());
+
+    int index = 0;
+    mutex index_mutex;
+
+    auto thread = [&]() {
+        while (true) {
+
+            index_mutex.lock();
+            int local_index = index;
+            index += 1;
+            index_mutex.unlock();
+
+            if (local_index >= results.size()) {
+                return;
+            }
+
+            auto r = results[local_index];
+            auto g = DubinsGraph(
+                this->graph.map,
+                this->graph.occupation_approximation,
+                this->graph.graph,
+                this->graph.velocity,
+                this->graph.k,
+                {r},
+                range
+            );
+
+            vector<int>victims;
+            for (auto v: r.victims) {
+                victims.push_back(std::get<0>(v));
+            }
+            // passing the victim orders is not necessary, as there is only one path
+            auto gs = GraphSearch(g, victims);
+            auto raw_result = gs.execute();
+            auto new_r = Result(
+                std::get<1>(raw_result),
+                r.victims,
+                std::get<0>(raw_result)
+            );
+
+            index_mutex.lock();
+            new_results.push_back(new_r);
+            index_mutex.unlock();
+        }
+    };
+
+
+    vector<std::thread> threads;
+
+    for (int i=0; i<NUM_WORKERS; i++) {
+        threads.push_back(std::thread(thread));
     }
 
-    auto g = DubinsGraph(
-        this->graph.map,
-        this->graph.occupation_approximation,
-        this->graph.graph,
-        this->graph.velocity,
-        this->graph.k,
-        {best}
-    );
-
-    // passing the victim orders is not necessary, as there is only one path
-    auto gs = GraphSearch(g, {});
-    auto raw_result = gs.execute();
-    return Result(
-        std::get<1>(raw_result),
-        best.victims,
-        std::get<0>(raw_result)
-    );
+    for (int i=0; i<NUM_WORKERS; i++) {
+        threads[i].join();
+    }
+    results = new_results;
 }
