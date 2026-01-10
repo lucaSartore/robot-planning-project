@@ -1,4 +1,4 @@
-\documentclass[a4paper]{article}
+\documentclass[a4paper, twocolumn]{article}
 
 %% Language and font encodings
 \usepackage[english]{babel}
@@ -23,7 +23,6 @@
 
 \begin{document}
 \maketitle
-\begin{multicols}{2}
 \setlength{\parskip}{0.1in}
 \setlength{\parindent}{15pt}
 
@@ -31,8 +30,131 @@
 \end{abstract}
 
 \section{Introduction}
+This works aim to develop a planning module for a robot in a Target-Rescue scenario.
+
+In this scenario the robot is placed into an environment with some obstacles, some
+victims to rescue and an exit point.
+The objective of the robot is to rescue as many victims as possible in a certain time
+window, and then reach the exit.
+Each victim as a value assigned, that the planner must keep into consideration
+when selecting which victims to rescue.
+The robot also is constrained by the fact that it should move using only dubins curves.
+
+In order to achieve this task the robot's planning module is composed of three main
+submodules:
+\begin{itemize}
+    \item \textbf{Planning graph module:} This module aims to read the map and convert it into a graph
+        that can be used for planning. This module in particular has two versions: One based 
+        a combinatorial approach, and another that uses a sampling-based strategy.
+    \item \textbf{Trajectory planning module:} This module uses the dubins motion equations to find
+        a valid trajectory that connect two points of a specific graph with a specific orientation.
+        The module also ensures that the path selected is feasible using collision detection.
+    \item \textbf{Graph search module:}
+        This module uses the previous to in order to find a good route that save as many victims
+        as possible. It is based on an A*-like algorithm.
+\end{itemize}
+
+
+\section{Planning graph}
+The planning graph was implemented as an interface that convert a ``map'' (a simple
+data structure containing data about victims obstacles ecc.) into a graph.
+
+This is done in two possible ways, one is combinatorial (\ref{sec:comb}) and the other is sampling-based (\ref{sec:samp}).
+For the sampling-based approach, collision detection capabilities are also required (\ref{sec:cd}).
+
+
+\subsection{Collision detection module}
+\label{sec:cd}
+
+The collision detection module is designed to be extremely quick, and this is achieved
+by giving up a bit of accuracy.
+
+This is done by splitting the map-space into a $1000 \times 1000$ grid.
+Obstacles and map borders are then ``drawn'' in the grid.
+Then a dilation \cite{dilation} is applied, with a circular kernel with 
+radius equal to the radius of the robot (plus a small margin).
+
+In such a way to understand if a certain position is collision free or not.
+we can simply check the gir's square that is the best approximation of the position.
+This is an acceptable approximation (assuming that the grid is large enough)
+and perhaps most importantly is extremely fast, with every operation having
+$o(1)$ time complexity.
+
+To check wether a path is collision free or not, the path is approximated as a list
+of point with a certain resolution (In this work the resolution used was 5 points per unit of distance)
+and then each point is individually checked.
+\subsection{Combinatorial Planning graph}
+\label{sec:comb}
+
+There are many different combinatorial strategy that be adopted,
+``Triangular Decomposition'', ``Trapezoidal Decomposition'' and ``Approximate Cell Decomposition''
+just to name a few.
+
+For this, work the triangle-based strategy was selected.
+The decision was motivated primely by the observation that graph obtained
+using triangle are usually more ``smooth'' than graph opened using trapezoids.
+Approximate cell Decomposition was not selected due to the fact that
+it generally produces much larger graphs than the first two, which would
+result in higher computational costs.
+
+This was not necessary the fastest option in terms of time complexity, however as we will see in the 
+result section (\ref{sec:results}) the triangulation execution time is almost negligible when
+compared to the downstream steps.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.5\textwidth]{./images/raw_triangulation.png}
+\caption{Architecture overview}
+\label{fig:raw_triang}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.5\textwidth]{./images/raw_graph.png}
+\caption{Architecture overview}
+\label{fig:raw_graph}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.5\textwidth]{./images/flip_triangulation.png}
+\caption{Architecture overview}
+\label{fig:flip_triang}
+\end{figure}
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.5\textwidth]{./images/fliip_graph.png}
+\caption{Architecture overview}
+\label{fig:flip_graph}
+\end{figure}
 
 
 
-\end{multicols}
+
+
+
+\subsection{Sampling Planning graph}
+
+
+\label{sec:samp}
+
+\section{results}
+\label{sec:results}
+
+\begin{thebibliography}{9}
+
+
+
+\bibitem{dilation}
+\href{https://it.overleaf.com/learn/latex/Bibliography_management_with_bibtex}{OpenCV - Tutorial erosion and dilation}
+
+\bibitem{lamport94}
+Leslie Lamport (1994) \emph{\LaTeX: a document preparation system}, Addison
+Wesley, Massachusetts, 2nd ed.
+\end{thebibliography}
+
 \end{document}
