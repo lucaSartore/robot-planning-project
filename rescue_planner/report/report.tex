@@ -20,6 +20,8 @@
 \usepackage{subcaption}
 \usepackage{float}
 \usepackage{listings}
+\usepackage{multirow}
+\usepackage[table,xcdraw]{xcolor}
 
 \lstdefinestyle{mystyle}{
     language=Python,
@@ -305,19 +307,24 @@ objectives = [...]
 visited = {}
 
 # priority queue
-queue = {0, {
-  start_node,
-  start_angle,
-  objective[0]
-}}
+queue = {}
+queue.push(
+  priority = 0,
+  value = {
+    start_node,
+    start_angle,
+    0, # cost payed so far
+    objective[0]
+  }
+)
 
 while not queue.empty:
-  # getting cost, node id,
-  # angle and next objective
-  # of the first node
-  # in the queue
-  cost, next = queue.pop()
-  node, angle, obj = next
+  # getting cost (so far), 
+  # the node id, the angle and
+  # the next objective of the 
+  # first node in the queue
+  next = queue.pop()
+  node, angle, cost, obj = next
 
   # avoid revisiting nodes
   if [node angle obj] in visited:
@@ -328,33 +335,58 @@ while not queue.empty:
   if node == graph.exit:
     return
 
+  # if we arrived at one objective
+  # we will move to the next
   if node == obj:
     obj = next_obj(obj)
 
   # iterate over all the edges 
-  # that start from node 'node'
-  # and start with angle 'angle'
+  # that start from node `node'
+  # and start with angle `angle'
   for e in graph.edges(node, angle):
     # calculate heuristic estimated
     # cost to terminate the journey
     h = heuristic(e.next_node, obj)
     
-    # find lower bound cost
-    # of current path
+    # find new cost payed so far
     new_cost = cost + e.edge_cost + h
 
     queue.push(
-      e.next_node,
-      new_cost,
-      obj
+      priority = new_cost + h,
+      value = {
+        e.next_node,
+        e.arriving_angle
+        new_cost,
+        obj
+      }
     )
 \end{lstlisting}
 }
-
-The described algorithm yield an optimal solution, and the
-upper bound cost is quite manageable at $o(O \cdot E \cdot log(E))$
-where $O$ is the number of objectives in the list and $E$ is the
+The described algorithm yield an optimal solution 
+(w.r.t. the input graph, which may itself not be optimal), and the
+upper bound cost is quite manageable at $o(V \cdot E \cdot log(E))$
+where $V$ is the number of objectives in the list and $E$ is the
 number of edges in the graph.
+
+\subsubsection{Refinement process}
+\label{sec:refinement}
+In order to find a more accurate solution the first output of the
+program is subsequently refined twice.
+The refined process consists in adding more angle
+of arrival for all the nodes that were part of the solution.
+The angles are placed in such a way that they are equally sampled
+in the space directly surrounding the angle chosen in te first
+solution.
+For example, if in the first iteration of a solution we pass trough node A with
+an angle of 30 degrees, in the second iteration we would add angles 20, 25, 35, and 40
+to node A's arriving angle possibility.
+This step is repeated twice, with it yielding a average improvement
+of 0.98\% and 0.12\% for the first and second iteration respectively.
+It is obviously possible to continue this refinement past the second iteration,
+but the gains gets progressively smaller.
+
+
+
 
 
 
@@ -413,10 +445,110 @@ strategies for the creation of the planning graph.
 
 \subsection{Execution Time}
 
+In the table below we show the execution time of the two approaches.
+We also included a single core and a multi core run for each of the
+approaches tested.
+
+All tests have being executed on a six-core twelve-threads ryzen 5 5600.
+We would have preferred to run the tests using a more modern
+CPU, and especially one with more cores, to show the full
+potential of the parallel architecture chosen, but this was
+unfortunately unfeasible.
+
+Different part of the program were measured to understand
+where most of the time is spent. In particular
+the measured part were:
+\begin{itemize}
+  \item \textbf{[Occ]:} Pre computing the occupation in the
+  $1000 \times 1000$ grid used for collision avoidance (\ref{sec:cd}).
+  
+  \item \textbf{[Gra]:} Building the planning graph (\ref{sec:comb} for combinatorial, \ref{sec:samp} for sampling).
+
+  \item \textbf{[Traj]:} Calculating all the trajectories using dubins (\ref{sec:trajectory_planning})
+
+  \item \textbf{[Sear]:} Searching the graph for the optimal path and victims order (\ref{sec:graph_search})
+
+  \item \textbf{[Ref]:} Refinement of the best solution (\ref{sec:refinement})
+\end{itemize}
+
+% Please add the following required packages to your document preamble:
+% \usepackage{multirow}
+% \usepackage[table,xcdraw]{xcolor}
+% Beamer presentation requires \usepackage{colortbl} instead of \usepackage[table,xcdraw]{xcolor}
+\begin{table}[h]
+\centering
+\begin{tabular}{|l|rrrr|}
+\hline
+\rowcolor[HTML]{EFEFEF} 
+\multicolumn{1}{|c|}{\cellcolor[HTML]{EFEFEF}}                            & \multicolumn{4}{c|}{\cellcolor[HTML]{EFEFEF}\textbf{Execution Time {[}ms{]}}}                                                                                                                                                                                                                         \\ \cline{2-5} 
+\rowcolor[HTML]{EFEFEF} 
+\multicolumn{1}{|c|}{\cellcolor[HTML]{EFEFEF}}                            & \multicolumn{2}{c|}{\cellcolor[HTML]{EFEFEF}{\color[HTML]{000000} \textbf{Sampling}}}                                                                               & \multicolumn{2}{c|}{\cellcolor[HTML]{EFEFEF}\textbf{Combinatorial}}                                                             \\ \cline{2-5} 
+\rowcolor[HTML]{EFEFEF} 
+\multicolumn{1}{|c|}{\multirow{-3}{*}{\cellcolor[HTML]{EFEFEF}\textbf{}}} & \multicolumn{1}{c|}{\cellcolor[HTML]{EFEFEF}{\color[HTML]{000000} \textbf{1Core}}} & \multicolumn{1}{c|}{\cellcolor[HTML]{EFEFEF}{\color[HTML]{000000} \textbf{6Cores}}} & \multicolumn{1}{c|}{\cellcolor[HTML]{EFEFEF}\textbf{1Core}} & \multicolumn{1}{c|}{\cellcolor[HTML]{EFEFEF}\textbf{6Cores}} \\ \hline
+\rowcolor[HTML]{FFFFFF} 
+{\color[HTML]{000000} \textbf{Occ}}                                       & \multicolumn{1}{r|}{\cellcolor[HTML]{FFFFFF}{\color[HTML]{000000} 375}}            & \multicolumn{1}{r|}{\cellcolor[HTML]{FFFFFF}{\color[HTML]{000000} 376}}             & \multicolumn{1}{r|}{\cellcolor[HTML]{FFFFFF}379}            & 383                                                          \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+{\color[HTML]{000000} \textbf{Gra}}                                     & \multicolumn{1}{r|}{\cellcolor[HTML]{EFEFEF}{\color[HTML]{000000} 18}}             & \multicolumn{1}{r|}{\cellcolor[HTML]{EFEFEF}{\color[HTML]{000000} 17}}              & \multicolumn{1}{r|}{\cellcolor[HTML]{EFEFEF}4}              & 4                                                            \\ \hline
+\rowcolor[HTML]{FFFFFF} 
+{\color[HTML]{000000} \textbf{Traj}}                                      & \multicolumn{1}{r|}{\cellcolor[HTML]{FFFFFF}{\color[HTML]{000000} 10881}}          & \multicolumn{1}{r|}{\cellcolor[HTML]{FFFFFF}{\color[HTML]{000000} 1256}}            & \multicolumn{1}{r|}{\cellcolor[HTML]{FFFFFF}1229}           & 142                                                          \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\textbf{Sear}                                                             & \multicolumn{1}{r|}{\cellcolor[HTML]{EFEFEF}12263}                                 & \multicolumn{1}{r|}{\cellcolor[HTML]{EFEFEF}1925}                                   & \multicolumn{1}{r|}{\cellcolor[HTML]{EFEFEF}2765}           & 379                                                          \\ \hline
+\rowcolor[HTML]{FFFFFF} 
+\textbf{Ref}                                                              & \multicolumn{1}{r|}{\cellcolor[HTML]{FFFFFF}1585}                                  & \multicolumn{1}{r|}{\cellcolor[HTML]{FFFFFF}197}                                    & \multicolumn{1}{r|}{\cellcolor[HTML]{FFFFFF}1514}           & 178                                                          \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\textbf{Tot}                                                              & \multicolumn{1}{r|}{\cellcolor[HTML]{EFEFEF}25126}                                 & \multicolumn{1}{r|}{\cellcolor[HTML]{EFEFEF}3773}                                   & \multicolumn{1}{r|}{\cellcolor[HTML]{EFEFEF}5892}           & 1088                                                         \\ \hline
+\end{tabular}
+\end{table}
+
+In the table we can note how combinatorial planning is much more efficient in terms
+of execution time. This is due to the fact that it generates a complete graph
+with a smaller number of nodes compared to the sampling based approach.
+However this speed improvement comes at the expenses of the quality of the 
+trajectories, as we will see in the next section.
+
+We can also note that the performance uplift we get from multithreading is excellent.
+We can see an improvement of approximately 6x when the process is compute-bounded
+(such as for example the graph-search part of the sampling approach). Up to a 9x 
+improvement when the process is memory-bounded (such as for example the trajectory
+planning step).
+At first it may seam counter intuitive that a 6 core CPU manage to get a greater
+than 6x improvement in performance when using multithreading, however this 
+is simply due to the fact that the process is memory bounded, and
+the CPU is therefore able to take advantage of the 12 threads (in particular the
+memory bounded part is doing collision detection by accessing the 
+$1000 \times 1000$ grid \ref{sec:cd})
+
+
 \subsection{Trajectory quality}
 
+In the two figure \ref{fig:sampling_path} and \ref{fig:combinatorial_path} we can see 
+the same map solved by using a sampling based,a nd a combinatorial approach respectively.
+It is easy to see how the combinatorial approach is worse than the sampling one.
+This is intuitive as the sampling one, although is slower, is able to generate much
+larger graphs, which gives the graph solver more flexibility when it tomes
+to find a good path.
+
+As we explained in section \ref{sec:graph_search}, the graph-search algorithm we presented
+is optimal with respect to the input graph. However the two approaches proposed to generate
+a planning graph are not optimal, and therefore a better graph will produce a better path.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.45\textwidth]{./images/path_sampling.png}
+\caption{A path obtained using a sampling-based strategy}
+\label{fig:sampling_path}
+\end{figure}
 \subsection{Collision avoidance}
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.45\textwidth]{./images/path_combinatorial.png}
+\caption{A path obtained using a combinatorial strategy}
+\label{fig:combinatorial_path}
+\end{figure}
+
+
+\subsection{Collision avoidance}
 The proposed algorithm should guaranteed that the found paths are collision free
 (assuming that the robot radius is set correctly and with sufficient margin).
 Some crashes were still observed during the early phases of development and after
@@ -427,20 +559,151 @@ This was addressed by increasing the turning radius, and adjusting the margin
 to account for controller drift.
 No other crash was observed after this fixes.
 
+\subsection{Conclusions}
+
+In general we can sey that when comparing sampling based and combinatorial strategies to build
+the planning graph the sampling one are the better option for our scenario.
+
+They are a bit slower than the other option when it comes to computation time, but they
+more than make up for it in the goodness of the trajectory.
+For example, going back to the trajectories in picture \ref{fig:sampling_path}
+and \ref{fig:combinatorial_path}, the sampling approach was 2.7 seconds
+slower in the computation time, but resulted in a path that was 16 seconds
+faster, making the tradeoff totally worth it.
+
+There are some variables that may affect this calculation, for example increasing
+the speed of the robot will result in the combinatorial strategy being more competitive.
+On the other hand the CPU used to run the tests is a but outdated at this point, and
+I believe that simply using a more modern one could bring the execution time
+fro the sampling strategy below one second.
+
 \subsection{More examples}
-In this section we will put more examples of the path selected by the robot in different scenarios
+In this section we will put more examples of the path selected by the robot in different scenarios.
+In particular there are 3 different scenarios, with varying numbers of victims and obstacles,
+and for each scenario there are two different solving methods (combinatorial and sampling)
+and two different time limits (120s and 30s).
+The 3 scenarios that we tested are the following:
+\begin{itemize}
+  \item \textbf{Scenario A:} This is the small scenario with 5 obstacles and 4 victims, and can
+    be seen in figure \ref{fig:A}
+  \item \textbf{Scenario B:} This is the medium scenario with 10 obstacles and 4 victims, and can
+    be seen in figure \ref{fig:B}
+  \item \textbf{Scenario C:} This is the large scenario with 12 obstacles and 5 victims, and can
+    be seen in figure \ref{fig:C}
+\end{itemize}
+
+In general we can note how when there is no time pressure the there is not a big differences
+between the two strategies (they both usually manage to save all victims).
+However when put under time pressure, there are some circumstances where the 
+sampling based approach is able to rescue more victims than the combinatorial based one.
+
+
+\begin{figure*}[!hbt]
+    \centering
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/test_a_comb_120s.png}
+        \caption{Combinatorial, Time limit = 120s}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/test_a_comb_30s.png}
+        \caption{Combinatorial, Time limit = 30s}
+    \end{subfigure}
+    
+    \vspace{0.5cm}
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/test_a_samp_120s.png}
+        \caption{Sampling, Time limit = 120s}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/test_a_samp_30s.png}
+        \caption{Sampling, Time limit = 30s}
+    \end{subfigure}
+    \caption{scenario A}
+    \label{fig:A}
+\end{figure*}
+
+\begin{figure*}[!hbt]
+    \centering
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/test_c_comb_120s.png}
+        \caption{Combinatorial, Time limit = 120s}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/test_c_comb_30s.png}
+        \caption{Combinatorial, Time limit = 30s}
+    \end{subfigure}
+    
+    \vspace{0.5cm}
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/test_c_samp_120s.png}
+        \caption{Sampling, Time limit = 120s}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/test_c_samp_30s.png}
+        \caption{Sampling, Time limit = 30s}
+    \end{subfigure}
+    \caption{scenario B}
+    \label{fig:B}
+\end{figure*}
+
+\begin{figure*}[!hbt]
+    \centering
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/test_b_comb_120s.png}
+        \caption{Combinatorial, Time limit = 120s}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/test_b_comb_30s.png}
+        \caption{Combinatorial, Time limit = 30s}
+    \end{subfigure}
+    
+    \vspace{0.5cm}
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/test_b_samp_120s.png}
+        \caption{Sampling, Time limit = 120s}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.48\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{./images/test_b_samp_30s.png}
+        \caption{Sampling, Time limit = 30s}
+    \end{subfigure}
+    \caption{scenario C}
+    \label{fig:C}
+\end{figure*}
 
 
 \subsection{How to reproduce}
 The code is open-source and available on \href{https://github.com/lucaSartore/robot-planning-project}{GitHub}.
 The parameters of the test can be configured from: 
-\begin{center}
+\newline
 \textit{rescue\_planner\/src\/util\/constants.hpp}
-\end{center}
+\newline
 And the test can be launched using:
-\begin{center}
+\newline
 \textit{roslaunch rescue\_planner main.launch}
-\end{center}
+
+\section{Acknowledges}
+
+The code has been written entirely by me expect the part to generate charts (that is AI-generated)
+and the code for KD-Trees (taken from \href{https://github.com/cdalitz/kdtree-cpp}{this} open
+source library). The report has been written entirely by me, and spell checked using AI.
 
 
 \begin{thebibliography}{9}
