@@ -129,7 +129,7 @@ int main_ros(int argc, char** argv) {
         false,
         true,
         true,
-        120
+        TIME_LIMIT
     );
     interface.OutputTrajectory(best);
     ros::spin();
@@ -142,11 +142,11 @@ int main_debug(int argc, char** argv) {
     auto map = interface.GetMap();
     auto _ =  process_map(
         map,
-        false,
+        true,
         false,
         true,
         true,
-        120
+        TIME_LIMIT
         );
     return 0;
 }

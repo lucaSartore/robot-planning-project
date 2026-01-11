@@ -17,3 +17,5 @@ const int N_SAMPLED_POINTS = 300;
 const int N_NEAREST = 10;
 /// thread to spawn for multithreaded workloads
 const int NUM_WORKERS = 12;
+///:w time limit for the robot path
+const float TIME_LIMIT = 120;
